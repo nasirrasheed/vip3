@@ -127,7 +127,7 @@ const ContactPage = () => {
                 <Phone className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Phone</h3>
-                  <p className="text-gray-600">+44 20 7123 4567</p>
+                  <p className="text-gray-600">+44 07464 247 007</p>
                   <p className="text-sm text-gray-500">Available 24/7</p>
                 </div>
               </div>
@@ -136,7 +136,7 @@ const ContactPage = () => {
                 <Mail className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
-                  <p className="text-gray-600">info@elitetransport.co.uk</p>
+                  <p className="text-gray-600">bookings@viptransportandsecurity.co.uk</p>
                   <p className="text-sm text-gray-500">Response within 2 hours</p>
                 </div>
               </div>
@@ -145,7 +145,7 @@ const ContactPage = () => {
                 <MapPin className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Location</h3>
-                  <p className="text-gray-600">London, United Kingdom</p>
+                  <p className="text-gray-600">North West and Cheshire</p>
                   <p className="text-sm text-gray-500">Nationwide coverage</p>
                 </div>
               </div>
