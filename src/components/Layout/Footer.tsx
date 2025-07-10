@@ -83,11 +83,11 @@ const Footer = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="h-4 w-4 text-yellow-400" />
-                <span className="text-gray-400">info@elitetransport.co.uk</span>
+                <span className="text-gray-400">bookings@viptransportandsecurity.co.uk</span>
               </div>
               <div className="flex items-center space-x-2">
                 <MapPin className="h-8 w-8 text-yellow-400" />
-                <span className="text-gray-400">Registered Address 167 Great Portland Street, London W1W 5PF
+                <span className="text-gray-400"> 167 Great Portland Street, London W1W 5PF
 </span>
               </div>
             </div>
