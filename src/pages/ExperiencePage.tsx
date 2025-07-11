@@ -134,7 +134,7 @@ const ExperiencePage = () => {
               className="relative"
             >
               <img
-                src="https://images.pexels.com/photos/1456031/pexels-photo-1456031.jpeg"
+                src="https://i.pinimg.com/736x/7e/97/a1/7e97a1e93c7ccc125201fdf9fe66c038.jpg"
                 alt="Professional chauffeur service experience"
                 className="rounded-lg shadow-lg w-full h-96 object-cover"
               />
