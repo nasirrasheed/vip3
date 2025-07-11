@@ -49,8 +49,7 @@ const ServicesPage = () => {
             Our Services
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Professional chauffeur-driven transport and VIP security services, 
-            tailored to meet your specific requirements with complete discretion and reliability.
+            Comprehensive luxury transportation solutions tailored individually to your needs
           </p>
         </motion.div>
 

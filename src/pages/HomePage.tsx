@@ -129,7 +129,7 @@ const HomePage = () => {
               Serving the needs of VIP and Elite Clients
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Our commitment to luxury, punctuality, professionalism and SIA registered Close Protection makes us the preferred choice for VIP transportation
+              Our commitment to luxury, punctuality, professionalism and SIA registered Close Protection makes us the preferred choice for VIP transportation for all important and high profile events
             </p>
           </div>
 

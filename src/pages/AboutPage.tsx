@@ -74,6 +74,10 @@ const AboutPage = () => {
               </h2>
               <div className="space-y-4 text-gray-700 leading-relaxed">
                 <p>
+                  VIP transport pride themselves as being the regions Premier luxury transport and chauffeur service. 
+                  A service to Leading Hotels, Corporate Executives and Private Clients who expect excellence.
+                </p>
+                <p>
                   Our commitment to luxury, punctuality, professionalism and SIA registered Close Protection 
                   makes us the preferred choice for VIP transportation for all important and high profile events.
                 </p>
@@ -81,8 +85,7 @@ const AboutPage = () => {
                   We stand by our Brand Values of Professionalism, Integrity, Style and Reliability.
                 </p>
                 <p>
-                  Our Fleet of Luxury Vehicles includes Rolls Royce and Bentley Premier vehicles, 
-                  maintained to the highest standards and operated by professional chauffeurs.
+                  Our Fleet of Luxury Vehicles includes Rolls Royce and Bentley Premier vehicles.
                 </p>
               </div>
             </motion.div>

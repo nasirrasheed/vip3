@@ -22,6 +22,7 @@ import ServiceDetailPage from './pages/ServiceDetailPage';
 import ContactPage from './pages/ContactPage';
 import ReviewSubmissionPage from './pages/ReviewSubmissionPage';
 import TestimonialsPage from './pages/TestimonialsPage';
+import CloseProtectionPage from './pages/CloseProtectionPage';
 
 // Protected Route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -52,6 +53,7 @@ function App() {
           <Route path="blog/:slug" element={<BlogPostPage />} />
           <Route path="services" element={<ServicesPage />} />
           <Route path="services/:slug" element={<ServiceDetailPage />} />
+          <Route path="close-protection" element={<CloseProtectionPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="reviews" element={<ReviewSubmissionPage />} />
           <Route path="testimonials" element={<TestimonialsPage />} />
