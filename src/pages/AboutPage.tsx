@@ -97,7 +97,7 @@ const AboutPage = () => {
               className="relative"
             >
               <img
-                src="https://cdn.motor1.com/images/mgl/G3AXvZ/s1/rolls-royce-phantom-goldfinger.jpg"
+                src="https://videos.openai.com/vg-assets/assets%2Ftask_01jzwjgghpftr8gpp8t90h6e4c%2F1752231948_img_1.webp?st=2025-07-11T09%3A31%3A33Z&se=2025-07-17T10%3A31%3A33Z&sks=b&skt=2025-07-11T09%3A31%3A33Z&ske=2025-07-17T10%3A31%3A33Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=koPPd5eemWxST%2FOlTdB4fVCc8blDcGcymHv5mKBeOfU%3D&az=oaivgprodscus"
                 alt="Professional chauffeur service"
                 className="rounded-lg shadow-lg w-full h-96 object-cover"
               />
