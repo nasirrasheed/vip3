@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Users, Award, Clock, CheckCircle, Globe } from 'lucide-react';
+import CompanyLogos from '../components/UI/CompanyLogos';
 
 const AboutPage = () => {
   const values = [
@@ -55,8 +56,8 @@ const AboutPage = () => {
             About VIP Transport and Security
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Established as London's premier chauffeur and security service provider, 
-            we deliver uncompromising standards in professional transport solutions.
+            VIP transport pride themselves as being the regions Premier luxury transport and chauffeur service. 
+            A service to Leading Hotels, Corporate Executives and Private Clients who expect excellence.
           </p>
         </motion.div>
 
@@ -73,19 +74,15 @@ const AboutPage = () => {
               </h2>
               <div className="space-y-4 text-gray-700 leading-relaxed">
                 <p>
-                  VIP Transport and Security has been serving discerning clients across the UK 
-                  for over a decade. We specialize in providing professional chauffeur-driven 
-                  transport and comprehensive security services for individuals, corporations, 
-                  and special events.
+                  Our commitment to luxury, punctuality, professionalism and SIA registered Close Protection 
+                  makes us the preferred choice for VIP transportation for all important and high profile events.
                 </p>
                 <p>
-                  Our commitment to excellence, discretion, and reliability has established us 
-                  as the preferred choice for clients who demand the highest standards in 
-                  professional transport services.
+                  We stand by our Brand Values of Professionalism, Integrity, Style and Reliability.
                 </p>
                 <p>
-                  Based in London with nationwide coverage, we combine local expertise with 
-                  international standards to deliver exceptional service experiences.
+                  Our Fleet of Luxury Vehicles includes Rolls Royce and Bentley Premier vehicles, 
+                  maintained to the highest standards and operated by professional chauffeurs.
                 </p>
               </div>
             </motion.div>
@@ -179,6 +176,12 @@ const AboutPage = () => {
             ))}
           </div>
         </section>
+
+        {/* Company Logos */}
+        <CompanyLogos 
+          title="Trusted Partners"
+          subtitle="We work with leading organizations and venues across the region"
+        />
 
         {/* Contact CTA */}
         <section className="text-center bg-black text-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-16 rounded-lg">

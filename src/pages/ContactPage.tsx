@@ -127,7 +127,7 @@ const ContactPage = () => {
                 <Phone className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Phone</h3>
-                  <p className="text-gray-600">+44 07464 247 007</p>
+                  <p className="text-gray-600">07464 247 007</p>
                   <p className="text-sm text-gray-500">Available 24/7</p>
                 </div>
               </div>
@@ -146,7 +146,7 @@ const ContactPage = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Location</h3>
                   <p className="text-gray-600">North West and Cheshire</p>
-                  <p className="text-sm text-gray-500">Nationwide coverage</p>
+                  <p className="text-sm text-gray-500">Registered: 167 Great Portland Street, London W1W 5PF</p>
                 </div>
               </div>
 
@@ -154,8 +154,8 @@ const ContactPage = () => {
                 <Clock className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Hours</h3>
-                  <p className="text-gray-600">24/7 Service</p>
-                  <p className="text-sm text-gray-500">Emergency bookings accepted</p>
+                  <p className="text-gray-600">24/7 Service*</p>
+                  <p className="text-sm text-gray-500">*Subject to additional charges</p>
                 </div>
               </div>
             </div>
@@ -169,7 +169,7 @@ const ContactPage = () => {
             className="bg-white rounded-lg shadow-lg p-8"
           >
             <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">
-              Send us a Message
+              Free No-obligation Quotation
             </h2>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

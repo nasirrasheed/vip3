@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Shield } from 'lucide-react';
+import { Menu, X, Shield, MessageCircle, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Header = () => {
@@ -53,12 +53,17 @@ const Header = () => {
           </nav>
 
           {/* CTA Button */}
-          <Link
-            to="/contact"
-            className="hidden md:block bg-yellow-400 text-black px-6 py-2 rounded-md font-medium hover:bg-yellow-500 transition-colors duration-200"
-          >
-            Get Quote
-          </Link>
+          <div className="hidden md:flex items-center space-x-4">
+            <a
+              href="https://wa.me/447464247007?text=Hello, I would like to inquire about your VIP transport services."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-green-500 text-white px-4 py-2 rounded-md font-medium hover:bg-green-600 transition-colors duration-200 flex items-center space-x-2"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>WhatsApp</span>
+            </a>
+          </div>
 
           {/* Mobile menu button */}
           <button
@@ -91,13 +96,24 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
-            <Link
-              to="/contact"
-              className="block bg-yellow-400 text-black px-6 py-2 rounded-md font-medium hover:bg-yellow-500 transition-colors duration-200 text-center"
+            <a
+              href="tel:07464247007"
+              className="block bg-yellow-400 text-black px-6 py-2 rounded-md font-medium hover:bg-yellow-500 transition-colors duration-200 text-center flex items-center justify-center space-x-2"
               onClick={() => setIsMenuOpen(false)}
             >
-              Get Quote
-            </Link>
+              <Phone className="w-4 h-4" />
+              <span>Book Now</span>
+            </a>
+            <a
+              href="https://wa.me/447464247007?text=Hello, I would like to inquire about your VIP transport services."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block bg-green-500 text-white px-6 py-2 rounded-md font-medium hover:bg-green-600 transition-colors duration-200 text-center flex items-center justify-center space-x-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>WhatsApp</span>
+            </a>
           </motion.div>
         )}
       </div>

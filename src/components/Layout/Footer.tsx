@@ -79,16 +79,22 @@ const Footer = () => {
             <div className="space-y-3 text-sm">
               <div className="flex items-center space-x-2">
                 <Phone className="h-4 w-4 text-yellow-400" />
-                <span className="text-gray-400">+44 07464 247 007</span>
+                <span className="text-gray-400">07464 247 007</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="h-4 w-4 text-yellow-400" />
                 <span className="text-gray-400">bookings@viptransportandsecurity.co.uk</span>
               </div>
               <div className="flex items-center space-x-2">
-                <MapPin className="h-8 w-8 text-yellow-400" />
-                <span className="text-gray-400"> 167 Great Portland Street, London W1W 5PF
-</span>
+                <MapPin className="w-4 h-4 text-yellow-400" />
+                <div className="text-gray-400">
+                  <p>North West and Cheshire</p>
+                  <p className="text-xs">Registered: 167 Great Portland Street, London W1W 5PF</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-yellow-400 text-sm">Hours:</span>
+                <span className="text-gray-400 text-sm">24/7* Subject to additional charges</span>
               </div>
             </div>
           </div>

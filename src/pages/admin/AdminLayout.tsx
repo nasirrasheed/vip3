@@ -8,6 +8,7 @@ import {
   MessageSquare, 
   Image,
   Mail,
+  Building,
   LogOut,
   Menu,
   X
@@ -27,6 +28,7 @@ const AdminLayout = () => {
     { name: 'Blog Posts', href: '/admin/blog', icon: FileText },
     { name: 'Reviews', href: '/admin/testimonials', icon: MessageSquare },
     { name: 'Gallery', href: '/admin/gallery', icon: Image },
+    { name: 'Company Logos', href: '/admin/company-logos', icon: Building },
     { name: 'Inquiries', href: '/admin/inquiries', icon: Mail },
   ];
 

@@ -8,6 +8,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import ServicesManager from './pages/admin/ServicesManager';
 import BlogManager from './pages/admin/BlogManager';
 import GalleryManager from './pages/admin/GalleryManager';
+import CompanyLogosManager from './pages/admin/CompanyLogosManager';
 import InquiriesManager from './pages/admin/InquiriesManager';
 import TestimonialsManager from './pages/admin/TestimonialsManager';
 import HomePage from './pages/HomePage';
@@ -67,6 +68,7 @@ function App() {
           <Route path="services" element={<ServicesManager />} />
           <Route path="blog" element={<BlogManager />} />
           <Route path="gallery" element={<GalleryManager />} />
+          <Route path="company-logos" element={<CompanyLogosManager />} />
           <Route path="inquiries" element={<InquiriesManager />} />
           <Route path="testimonials" element={<TestimonialsManager />} />
           <Route index element={<Navigate to="/admin/dashboard" />} />

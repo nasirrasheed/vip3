@@ -5,6 +5,7 @@ import { CheckCircle, Clock, Shield, Users, Globe, Award } from 'lucide-react';
 import Hero from '../components/UI/Hero';
 import ServiceCard from '../components/UI/ServiceCard';
 import TestimonialSlider from '../components/UI/TestimonialSlider';
+import CompanyLogos from '../components/UI/CompanyLogos';
 import { supabase, Service, Testimonial } from '../lib/supabase';
 
 const HomePage = () => {
@@ -44,18 +45,18 @@ const HomePage = () => {
   const whyChooseUsItems = [
     {
       icon: Shield,
-      title: 'Professional Chauffeurs',
-      description: 'Fully licensed, uniformed chauffeurs with extensive training and local knowledge'
+      title: 'SIA Close Protection',
+      description: 'SIA registered Close Protection and Security Protocols available'
     },
     {
       icon: Clock,
       title: '24/7 Availability',
-      description: 'Round-the-clock availability for all your transport requirements'
+      description: '24/7 Availability* Free No-obligation Quotation and subject to additional charges'
     },
     {
       icon: Users,
-      title: 'Tailored Service',
-      description: 'Bespoke transport solutions designed around your specific needs'
+      title: 'Professional Chauffeurs',
+      description: 'Fully licensed, uniformed chauffeurs with extensive training and local knowledge'
     },
     {
       icon: CheckCircle,
@@ -64,13 +65,13 @@ const HomePage = () => {
     },
     {
       icon: Award,
-      title: 'Premium Fleet',
-      description: 'Luxury vehicles maintained to the highest standards'
+      title: 'Comprehensive Insurance',
+      description: 'Fully insured luxury vehicles maintained to the highest standards'
     },
     {
       icon: Globe,
-      title: 'UK Wide Coverage',
-      description: 'Comprehensive coverage across London and the entire UK'
+      title: 'Free No-obligation Quotation',
+      description: 'Professional consultation and quotation service for all requirements'
     }
   ];
 
@@ -86,9 +87,9 @@ const HomePage = () => {
     <div>
       {/* Hero Section */}
       <Hero
-        title="VIP Transport and Security Services"
-        subtitle="Professional chauffeur-driven transport and security solutions across the UK"
-        backgroundImage="https://images.pexels.com/photos/2026324/pexels-photo-2026324.jpeg"
+        title="Premier Luxury Transport & Chauffeur Service"
+        subtitle="VIP transport pride themselves as being the regions Premier luxury transport and chauffeur service. A service to Leading Hotels, Corporate Executives and Private Clients who expect excellence."
+        backgroundImage="https://images.pexels.com/photos/1456031/pexels-photo-1456031.jpeg"
         ctaText="Explore Services"
         onCtaClick={() => navigate('/services')}
       />
@@ -98,10 +99,10 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
-              Professional Transport & Security Services
+              Our Services
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Comprehensive chauffeur and security solutions for discerning clients
+              Comprehensive luxury transportation solutions tailored individually to your needs
             </p>
           </div>
 
@@ -125,10 +126,10 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">
-              Why Choose VIP Transport and Security
+              Serving the needs of VIP and Elite Clients
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Uncompromising standards in professional transport and security services
+              Our commitment to luxury, punctuality, professionalism and SIA registered Close Protection makes us the preferred choice for VIP transportation
             </p>
           </div>
 
@@ -155,6 +156,9 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {/* Company Logos */}
+      <CompanyLogos />
 
       {/* Testimonials */}
       <TestimonialSlider testimonials={testimonials} />

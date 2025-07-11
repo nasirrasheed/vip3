@@ -67,3 +67,12 @@ export type Inquiry = {
   status: string;
   created_at: string;
 };
+
+export type CompanyLogo = {
+  id: string;
+  name: string;
+  logo_url: string;
+  order_index: number;
+  is_active: boolean;
+  created_at: string;
+};
