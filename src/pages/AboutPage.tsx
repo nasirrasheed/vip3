@@ -97,7 +97,7 @@ const AboutPage = () => {
               className="relative"
             >
               <img
-                src="https://images.pexels.com/photos/1181345/pexels-photo-1181345.jpeg"
+                src="https://cdn.motor1.com/images/mgl/G3AXvZ/s1/rolls-royce-phantom-goldfinger.jpg"
                 alt="Professional chauffeur service"
                 className="rounded-lg shadow-lg w-full h-96 object-cover"
               />
