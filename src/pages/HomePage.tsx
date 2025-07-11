@@ -89,7 +89,7 @@ const HomePage = () => {
       <Hero
         title="Premier Luxury Transport & Chauffeur Service"
         subtitle="VIP transport pride themselves as being the regions Premier luxury transport and chauffeur service. A service to Leading Hotels, Corporate Executives and Private Clients who expect excellence."
-        backgroundImage="file:///C:/Users/ccomputers/Desktop/Screenshot%202025-07-11%20030703.png"
+        backgroundImage="https://i.pinimg.com/1200x/c6/07/32/c607322841002c26bcff69fd0930b401.jpg"
         ctaText="Explore Services"
         onCtaClick={() => navigate('/services')}
       />
