@@ -29,12 +29,15 @@ const Header = () => {
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <Shield className="h-8 w-8 text-yellow-400" />
-            <div className="text-white font-serif text-xl font-semibold">
-              VIP Transport<span className="text-yellow-400"> & Security</span>
-            </div>
-          </Link>
-
+  <img
+    src="https://ucfe0bc2b17dd6f9600348084397.previews.dropboxusercontent.com/p/thumb/ACu4ihoAPbO52uRpZgXXr-gESjMT5MfPGswfxdkbto1DxyUCJauD5Rt__rTIZ27NlnbPEt4gizTpSvxa5vTxuk4RWUtlF_Eh2iXRZbXUx0VlZOJylR-C1NcU3pTtUrgENQBOjk4nuplUlzexkUBMe2eUZY6zdXDhp0b6UNfprUqlulttdXmF8Hiucf3x6_nXe0p6fxUmrNZ199iLUl21Xiq_yRV2ldCMYo_pOy9lnvlPfDSSSoNsbfGnJeCSCIkj-TQ_cSvt4HbtxbXIWFBU0mSe7-UI3q4604ULQ3qrlDJPwWfmdfjx3bksNz847H3ZrFEE7JGKZIFQXBUWbyiCXnWpG1cO3Aq2jHfaUq9A1wTpXw/p.png"
+    alt="VIP Transport Logo"
+    className="h-10 w-10 object-cover filter brightness-100 "
+  />
+  <div className="text-white font-serif text-xl font-semibold">
+    VIP Transport<span className="text-yellow-400"> & Security</span>
+  </div>
+</Link>
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
             {navigation.map((item) => (
