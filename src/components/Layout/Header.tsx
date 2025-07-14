@@ -38,7 +38,7 @@ const Header = () => {
               <div className="text-white font-serif text-sm sm:text-base lg:text-xl xl:text-2xl font-semibold leading-tight truncate">
                 VIP Transport<span className="text-yellow-400"> & Security</span>
               </div>
-              <div className="text-yellow-400 text-xs sm:text-xs lg:text-sm font-light italic leading-tight hidden sm:block">
+              <div className="text-yellow-400 text-xs sm:text-xs lg:text-sm font-light italic leading-tight  sm:block">
                 Your Journey, Our Priority.
               </div>
             </div>
