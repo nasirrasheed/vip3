@@ -17,9 +17,14 @@ const Footer = () => {
     alt="VIP Transport Logo"
     className="h-10 w-10 object-cover "
   />
-              <div className="text-white font-serif text-lg font-semibold">
+                 <div className="flex flex-col">
+                 <div className="text-white font-serif text-xl font-semibold">
                 VIP Transport<span className="text-yellow-400"> & Security</span>
               </div>
+              <div className="text-yellow-400 text-xs font-light italic">
+                Your Journey, Our Priority.
+              </div>
+            </div>
             </Link>
             <p className="text-gray-400 text-sm">
               Premium chauffeur-driven transport and VIP security services across the UK. 
