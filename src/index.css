@@ -10,3 +10,8 @@ header.fixed.top-12.left-0.right-0.bg-black\/95.backdrop-blur-md.z-40.border-b.b
     text-align: center;
     margin-top: 5px;
 }
+img.h-10.w-10.object-cover {
+    border-radius: 30px;
+    width: 2.5rem;
+    height: 2.5rem;
+}
