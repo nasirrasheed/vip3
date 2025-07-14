@@ -36,6 +36,7 @@ const Header = () => {
   />
   <div className="text-white font-serif text-xl font-semibold">
     VIP Transport<span className="text-yellow-400"> & Security</span>
+  Your Journey, Our Priority
   </div>
 </Link>
           {/* Desktop Navigation */}
