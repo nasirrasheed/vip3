@@ -12,3 +12,15 @@
 img.h-10.w-10.object-cover.filter.brightness-100 {
     height: 3.5rem;
 }
+a.flex.items-center.space-x-2.font-bold.text-lg.hover\:text-gray-800.transition-colors.duration-200 {
+    font-size: 2.1255rem;
+}
+svg.lucide.lucide-phone.w-5.h-5 {
+    width: 2.5rem;
+    height
+Specifies the height of the content area, padding area or border area (depending on 'box-sizing') of certain boxes.
+Learn more
+
+Don't show
+: 2.5rem;
+}
