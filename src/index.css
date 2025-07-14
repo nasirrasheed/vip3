@@ -4,3 +4,9 @@
 .pt-32 {
     padding-top: 7rem;
 }
+
+header.fixed.top-12.left-0.right-0.bg-black\/95.backdrop-blur-md.z-40.border-b.border-white\/10.shadow-lg {
+    align-items: center;
+    text-align: center;
+    margin-top: 5px;
+}
