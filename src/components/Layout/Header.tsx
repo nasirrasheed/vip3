@@ -30,7 +30,7 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
   <img
-    src="https://ucfe0bc2b17dd6f9600348084397.previews.dropboxusercontent.com/p/thumb/ACu4ihoAPbO52uRpZgXXr-gESjMT5MfPGswfxdkbto1DxyUCJauD5Rt__rTIZ27NlnbPEt4gizTpSvxa5vTxuk4RWUtlF_Eh2iXRZbXUx0VlZOJylR-C1NcU3pTtUrgENQBOjk4nuplUlzexkUBMe2eUZY6zdXDhp0b6UNfprUqlulttdXmF8Hiucf3x6_nXe0p6fxUmrNZ199iLUl21Xiq_yRV2ldCMYo_pOy9lnvlPfDSSSoNsbfGnJeCSCIkj-TQ_cSvt4HbtxbXIWFBU0mSe7-UI3q4604ULQ3qrlDJPwWfmdfjx3bksNz847H3ZrFEE7JGKZIFQXBUWbyiCXnWpG1cO3Aq2jHfaUq9A1wTpXw/p.png"
+    src="https://videos.openai.com/vg-assets/assets%2Ftask_01k0523827ebprhhv3tkcgt3k8%2F1752516734_img_1.webp?st=2025-07-14T17%3A06%3A33Z&se=2025-07-20T18%3A06%3A33Z&sks=b&skt=2025-07-14T17%3A06%3A33Z&ske=2025-07-20T18%3A06%3A33Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=pfCeUONCAMbXWVYDEZNbXMl3V%2Bpuw072y%2B6rjt3UTkg%3D&az=oaivgprodscus"
     alt="VIP Transport Logo"
     className="h-10 w-10 object-cover filter brightness-100 "
   />
