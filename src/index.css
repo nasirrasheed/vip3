@@ -34,3 +34,7 @@ img.h-10.w-10.object-cover {
 margin-top:30px;
 }
 }
+
+img.rounded-lg.shadow-lg.w-full.h-96.object-cover {
+    height: 30rem;
+}
