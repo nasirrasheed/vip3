@@ -1,3 +1,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+.pt-32 {
+    padding-top: 7rem;
+}
