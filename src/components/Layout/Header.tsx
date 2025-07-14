@@ -32,7 +32,7 @@ const Header = () => {
   <img
     src="https://videos.openai.com/vg-assets/assets%2Ftask_01k0523827ebprhhv3tkcgt3k8%2F1752516734_img_1.webp?st=2025-07-14T17%3A06%3A33Z&se=2025-07-20T18%3A06%3A33Z&sks=b&skt=2025-07-14T17%3A06%3A33Z&ske=2025-07-20T18%3A06%3A33Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=pfCeUONCAMbXWVYDEZNbXMl3V%2Bpuw072y%2B6rjt3UTkg%3D&az=oaivgprodscus"
     alt="VIP Transport Logo"
-    className="h-10 w-10 object-cover filter brightness-100 "
+    className="h-10 w-10 object-cover "
   />
   <div className="text-white font-serif text-xl font-semibold">
     VIP Transport<span className="text-yellow-400"> & Security</span>
