@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Shield, MessageCircle, Phone } from 'lucide-react';
+import { Menu, X, MessageCircle, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Header = () => {
@@ -61,17 +61,16 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Desktop CTA Buttons - Hidden on mobile */}
-          <div className="hidden lg:flex items-center space-x-2 xl:space-x-4 flex-shrink-0">
+          {/* Desktop WhatsApp Button - Only on XL screens and above */}
+          <div className="hidden xl:flex items-center space-x-4 flex-shrink-0">
             <a
               href="https://wa.me/447464247007?text=Hello, I would like to inquire about your VIP transport services."
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-green-500 text-white px-3 py-2 xl:px-4 xl:py-2 rounded-md text-sm xl:text-base font-medium hover:bg-green-600 transition-colors duration-200 flex items-center space-x-1 xl:space-x-2 whitespace-nowrap"
+              className="bg-green-500 text-white px-4 py-2 xl:px-6 xl:py-3 rounded-md text-sm xl:text-base font-medium hover:bg-green-600 transition-colors duration-200 flex items-center space-x-2 whitespace-nowrap"
             >
-              <MessageCircle className="w-4 h-4" />
-              <span className="hidden xl:inline">WhatsApp</span>
-              <span className="xl:hidden">WA</span>
+              <MessageCircle className="w-4 h-4 xl:w-5 xl:h-5" />
+              <span>WhatsApp</span>
             </a>
           </div>
 
