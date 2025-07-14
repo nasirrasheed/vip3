@@ -19,3 +19,9 @@ svg.lucide.lucide-phone.w-5.h-5 {
     width: 2.5rem;
     height: 2.5rem;
 }
+
+img.h-10.w-10.object-cover {
+    height: 3.5rem;
+    width: 3.5rem;
+    border-radius: 35px;
+}
