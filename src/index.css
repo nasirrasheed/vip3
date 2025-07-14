@@ -28,6 +28,9 @@ img.h-10.w-10.object-cover {
     width: 3.5rem;
     border-radius: 35px;
 }
-@media(max-width:425px){.max-w-7xl.mx-auto.px-4.sm\:px-6.lg\:px-8{
+@media (max-width: 425px)
+{
+    .max-w-7xl.mx-auto.px-4.sm\:px-6.lg\:px-8{
 margin-top:30px;
-}}
+}
+}
