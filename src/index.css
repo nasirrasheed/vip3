@@ -33,7 +33,4 @@ img.h-10.w-10.object-cover {
     height: 26rem;
 }
 
-header.fixed.top-12.left-0.right-0.bg-black\/90.backdrop-blur-md.z-40.border-b.border-white\/10 {
-    position: relative;
-    top: 0;
-}
+
