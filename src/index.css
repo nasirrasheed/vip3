@@ -17,10 +17,5 @@ a.flex.items-center.space-x-2.font-bold.text-lg.hover\:text-gray-800.transition-
 }
 svg.lucide.lucide-phone.w-5.h-5 {
     width: 2.5rem;
-    height
-Specifies the height of the content area, padding area or border area (depending on 'box-sizing') of certain boxes.
-Learn more
-
-Don't show
-: 2.5rem;
+    height: 2.5rem;
 }
