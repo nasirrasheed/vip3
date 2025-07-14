@@ -34,3 +34,7 @@ img.h-10.w-10.object-cover {
 margin-top:30px;
 }
 }
+
+.h-96 {
+    height: 26rem;
+}
