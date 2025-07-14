@@ -37,9 +37,7 @@ const Header = () => {
   <div className="text-white font-serif text-xl font-semibold">
     VIP Transport<span className="text-yellow-400"> & Security</span>
   </div>
-            <div className="text-white font-serif font-semibold">
-            Your Journey,<span className="text-yellow-400"> Our Priority</span>
-            </div>
+           
 </Link>
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
