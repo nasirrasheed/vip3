@@ -14,6 +14,9 @@ img.h-10.w-10.object-cover.filter.brightness-100 {
 }
 a.flex.items-center.space-x-2.font-bold.text-lg.hover\:text-gray-800.transition-colors.duration-200 {
     font-size: 2.125rem;
+    align-items: center;
+    text-align: center;
+    line-height:1.09;
 }
 svg.lucide.lucide-phone.w-5.h-5 {
     width: 2.5rem;
@@ -24,4 +27,7 @@ img.h-10.w-10.object-cover {
     height: 3.5rem;
     width: 3.5rem;
     border-radius: 35px;
+}
+.max-w-7xl.mx-auto.px-4.sm\:px-6.lg\:px-8{
+margin-top:30px;
 }
