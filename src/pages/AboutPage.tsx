@@ -8,22 +8,26 @@ const AboutPage = () => {
     {
       icon: Shield,
       title: 'Professional Excellence',
-      description: 'We maintain the highest standards in all aspects of our service delivery'
+      description: 'We maintain the highest standards in all aspects of our service delivery',
+      iconImage: 'https://images.pexels.com/photos/1181345/pexels-photo-1181345.jpeg'
     },
     {
       icon: Users,
       title: 'Client-Focused Approach',
-      description: 'Every service is tailored to meet our clients\' specific requirements'
+      description: 'Every service is tailored to meet our clients\' specific requirements',
+      iconImage: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg'
     },
     {
       icon: Award,
       title: 'Trusted Reputation',
-      description: 'Built on years of reliable service to discerning clients'
+      description: 'Built on years of reliable service to discerning clients',
+      iconImage: 'https://images.pexels.com/photos/1181348/pexels-photo-1181348.jpeg'
     },
     {
       icon: Clock,
       title: 'Punctuality Guaranteed',
-      description: 'We understand the importance of timing in professional transport'
+      description: 'We understand the importance of timing in professional transport',
+      iconImage: 'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg'
     }
   ];
 
@@ -128,15 +132,22 @@ const AboutPage = () => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="text-center bg-white p-6 rounded-lg shadow-sm"
+                className="text-center bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
               >
-                <div className="flex items-center justify-center w-16 h-16 bg-yellow-400 rounded-full mx-auto mb-4">
-                  <value.icon className="w-8 h-8 text-black" />
+                <div className="relative w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden shadow-md">
+                  <img
+                    src={value.iconImage}
+                    alt={value.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                    <value.icon className="w-8 h-8 text-white drop-shadow-lg" />
+                  </div>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   {value.title}
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 leading-relaxed">
                   {value.description}
                 </p>
               </motion.div>

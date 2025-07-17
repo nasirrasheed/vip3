@@ -178,22 +178,26 @@ const ExperiencePage = () => {
               {
                 step: '01',
                 title: 'Consultation',
-                description: 'We discuss your requirements and tailor our service to your needs'
+                description: 'We discuss your requirements and tailor our service to your needs',
+                iconImage: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg'
               },
               {
                 step: '02',
                 title: 'Planning',
-                description: 'Route planning, vehicle selection, and schedule coordination'
+                description: 'Route planning, vehicle selection, and schedule coordination',
+                iconImage: 'https://images.pexels.com/photos/590016/pexels-photo-590016.jpg'
               },
               {
                 step: '03',
                 title: 'Execution',
-                description: 'Professional service delivery with real-time monitoring'
+                description: 'Professional service delivery with real-time monitoring',
+                iconImage: 'https://images.pexels.com/photos/1181345/pexels-photo-1181345.jpeg'
               },
               {
                 step: '04',
                 title: 'Follow-up',
-                description: 'Post-service feedback and continuous improvement'
+                description: 'Post-service feedback and continuous improvement',
+                iconImage: 'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg'
               }
             ].map((process, index) => (
               <motion.div
@@ -201,15 +205,22 @@ const ExperiencePage = () => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="text-center"
+                className="text-center bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300"
               >
-                <div className="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-black font-bold text-lg">{process.step}</span>
+                <div className="relative w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden shadow-md">
+                  <img
+                    src={process.iconImage}
+                    alt={process.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                    <span className="text-white font-bold text-lg drop-shadow-lg">{process.step}</span>
+                  </div>
                 </div>
                 <h3 className="text-xl font-serif font-semibold text-gray-900 mb-3">
                   {process.title}
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 leading-relaxed">
                   {process.description}
                 </p>
               </motion.div>
