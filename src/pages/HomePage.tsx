@@ -46,32 +46,38 @@ const HomePage = () => {
     {
       icon: Shield,
       title: 'SIA Close Protection',
-      description: 'SIA registered Close Protection and Security Protocols available'
+      description: 'SIA registered Close Protection and Security Protocols available',
+      iconUrl: 'https://images.pexels.com/photos/8728380/pexels-photo-8728380.jpeg' // SIA badge/security professional
     },
     {
       icon: Clock,
       title: '24/7 Availability',
-      description: '24/7 Availability* Free No-obligation Quotation and subject to additional charges'
+      description: '24/7 Availability* Free No-obligation Quotation and subject to additional charges',
+      iconUrl: 'https://images.pexels.com/photos/1095601/pexels-photo-1095601.jpeg' // Professional clock/time concept
     },
     {
       icon: Users,
       title: 'Professional Chauffeurs',
-      description: 'Fully licensed, uniformed chauffeurs with extensive training and local knowledge'
+      description: 'Fully licensed, uniformed chauffeurs with extensive training and local knowledge',
+      iconUrl: 'https://images.pexels.com/photos/1181345/pexels-photo-1181345.jpeg' // Professional chauffeurs
     },
     {
       icon: CheckCircle,
       title: 'Reliability & Punctuality',
-      description: 'Guaranteed on-time service with real-time journey monitoring'
+      description: 'Guaranteed on-time service with real-time journey monitoring',
+      iconUrl: 'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg' // Chauffeur checking watch
     },
     {
       icon: Award,
       title: 'Comprehensive Insurance',
-      description: 'Fully insured luxury vehicles maintained to the highest standards'
+      description: 'Fully insured luxury vehicles maintained to the highest standards',
+      iconUrl: 'https://images.pexels.com/photos/1181348/pexels-photo-1181348.jpeg' // Insurance/protection concept
     },
     {
       icon: Globe,
       title: 'Free No-obligation Quotation',
-      description: 'Professional consultation and quotation service for all requirements'
+      description: 'Professional consultation and quotation service for all requirements',
+      iconUrl: 'https://images.pexels.com/photos/7688336/pexels-photo-7688336.jpeg' // Customer service/consultation
     }
   ];
 
@@ -140,15 +146,22 @@ const HomePage = () => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="text-center"
+                className="text-center bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300"
               >
-                <div className="flex items-center justify-center w-16 h-16 bg-yellow-400 rounded-full mx-auto mb-4">
-                  <item.icon className="w-8 h-8 text-black" />
+                <div className="relative w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden shadow-md">
+                  <img
+                    src={item.iconUrl}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                    <item.icon className="w-8 h-8 text-white drop-shadow-lg" />
+                  </div>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   {item.title}
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 leading-relaxed">
                   {item.description}
                 </p>
               </motion.div>
