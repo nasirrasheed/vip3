@@ -49,12 +49,12 @@ const HomePage = () => {
       description: 'SIA registered Close Protection and Security Protocols available',
       iconUrl: 'https://images.pexels.com/photos/8728380/pexels-photo-8728380.jpeg' // SIA badge/security professional
     },
-    {
-      icon: Clock,
-      title: '24/7 Availability',
-      description: '24/7 Availability* Free No-obligation Quotation and subject to additional charges',
-      iconUrl: 'https://images.pexels.com/photos/1095601/pexels-photo-1095601.jpeg' // Professional clock/time concept
-    },
+    // {
+    //   icon: Clock,
+    //   title: '24/7 Availability',
+    //   description: '24/7 Availability* Free No-obligation Quotation and subject to additional charges',
+    //   iconUrl: 'https://images.pexels.com/photos/1095601/pexels-photo-1095601.jpeg' // Professional clock/time concept
+    // },
     {
       icon: Users,
       title: 'Professional Chauffeurs',
