@@ -27,7 +27,7 @@ const AboutPage = () => {
       icon: Clock,
       title: 'Punctuality Guaranteed',
       description: 'We understand the importance of timing in professional transport',
-      iconImage: 'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg'
+      iconImage: 'https://videos.openai.com/vg-assets/assets%2Ftask_01k0ef1gqkfqcvt4aczfkzs06q%2F1752832285_img_0.webp?st=2025-07-18T08%3A31%3A06Z&se=2025-07-24T09%3A31%3A06Z&sks=b&skt=2025-07-18T08%3A31%3A06Z&ske=2025-07-24T09%3A31%3A06Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=mB0LCd31OAwpTL9hLQ%2FE7WOBtIawzhv1bLR1BBPMl6Q%3D&az=oaivgprodscus'
     }
   ];
 
