@@ -9,19 +9,19 @@ const AboutPage = () => {
       icon: Shield,
       title: 'Professional Excellence',
       description: 'We maintain the highest standards in all aspects of our service delivery',
-      iconImage: 'https://images.pexels.com/photos/1181345/pexels-photo-1181345.jpeg'
+      iconImage: 'https://i.pinimg.com/736x/e7/af/30/e7af30cccd495c7a51dde1ddbb70818d.jpg'
     },
     {
       icon: Users,
       title: 'Client-Focused Approach',
       description: 'Every service is tailored to meet our clients\' specific requirements',
-      iconImage: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg'
+      iconImage: 'https://i.pinimg.com/1200x/bc/b2/3c/bcb23c4e3773d37a55404d89759a0e40.jpg'
     },
     {
       icon: Award,
       title: 'Trusted Reputation',
       description: 'Built on years of reliable service to discerning clients',
-      iconImage: 'https://images.pexels.com/photos/1181348/pexels-photo-1181348.jpeg'
+      iconImage: 'https://i.pinimg.com/1200x/37/f1/9d/37f19d0a467ec3593fb84dbe9c558bf5.jpg'
     },
     {
       icon: Clock,
