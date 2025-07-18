@@ -52,7 +52,7 @@ const HomePage = () => {
      {
         icon: Clock,
        title: '24/7 Availability',
-       description: '24/7 Availability* Free No-obligation Quotation and subject to additional charges',
+       description: 'Free No-obligation Quotation and subject to additional charges',
        iconUrl: 'https://i.pinimg.com/736x/b1/73/01/b1730120124ec0d53fd4a0a63de494a3.jpg' // Professional clock/time concept
      },
     {
