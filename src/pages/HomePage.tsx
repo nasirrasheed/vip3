@@ -44,37 +44,37 @@ const HomePage = () => {
 
   const whyChooseUsItems = [
     {
-      // icon: Shield,
+       icon: Shield,
       title: 'SIA Close Protection',
       description: 'SIA registered Close Protection and Security Protocols available',
       iconUrl: 'https://i.pinimg.com/1200x/86/8e/d2/868ed2b33dd489ffb8f313c60b0de43e.jpg' // SIA badge/security professional
     },
      {
-       // icon: Clock,
+        icon: Clock,
        title: '24/7 Availability',
        description: '24/7 Availability* Free No-obligation Quotation and subject to additional charges',
        iconUrl: 'https://i.pinimg.com/736x/b1/73/01/b1730120124ec0d53fd4a0a63de494a3.jpg' // Professional clock/time concept
      },
     {
-      // icon: Users,
+       icon: Users,
       title: 'Professional Chauffeurs',
       description: 'Fully licensed, uniformed chauffeurs with extensive training and local knowledge',
       iconUrl: 'https://i.pinimg.com/1200x/1a/6f/73/1a6f73d363992d25ca4497d5f7b3a3ac.jpg' // Professional chauffeurs
     },
     {
-      // icon: CheckCircle,
+       icon: CheckCircle,
       title: 'Reliability & Punctuality',
       description: 'Guaranteed on-time service with real-time journey monitoring',
       iconUrl: 'https://i.pinimg.com/736x/23/c2/5d/23c25d1e316ae02a82a387ff6ab3b1aa.jpg' // Chauffeur checking watch
     },
     {
-      // icon: Award,
+       icon: Award,
       title: 'Comprehensive Insurance',
       description: 'Fully insured luxury vehicles maintained to the highest standards',
       iconUrl: 'https://i.pinimg.com/1200x/39/4b/94/394b947b0bd90650930fad4d2cf098c6.jpg' // Insurance/protection concept
     },
     {
-      // icon: Globe,
+      icon: Globe,
       title: 'Free No-obligation Quotation',
       description: 'Professional consultation and quotation service for all requirements',
       iconUrl: 'https://i.pinimg.com/736x/21/5d/90/215d9047e983ffe664d285158f748b47.jpg' // Customer service/consultation
