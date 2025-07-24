@@ -7,6 +7,7 @@ import ServiceCard from '../components/UI/ServiceCard';
 import TestimonialSlider from '../components/UI/TestimonialSlider';
 import CompanyLogos from '../components/UI/CompanyLogos';
 import { supabase, Service, Testimonial } from '../lib/supabase';
+import bgImage from "@/assets/background-image.webp";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -95,7 +96,7 @@ const HomePage = () => {
       <Hero
         title="Premier Luxury Transport & Chauffeur Service"
         subtitle="VIP transport pride themselves as being the regions Premier luxury transport and chauffeur service. A service to Leading Hotels, Corporate Executives and Private Clients who expect excellence."
-        backgroundImage="https://videos.openai.com/vg-assets/assets%2Ftask_01k0545ngkezabj5rz2q5fwbk6%2F1752518924_img_0.webp?st=2025-07-14T17%3A27%3A19Z&se=2025-07-20T18%3A27%3A19Z&sks=b&skt=2025-07-14T17%3A27%3A19Z&ske=2025-07-20T18%3A27%3A19Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=3mUD10WafGqSHn%2Bac01rkbRMbV0ALfrvs42H8WPVI18%3D&az=oaivgprodscus"
+        backgroundImage={bgImage}
         ctaText="Explore Services"
         onCtaClick={() => navigate('/services')}
       />
