@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Users, Award, Clock, CheckCircle, Globe } from 'lucide-react';
 import CompanyLogos from '../components/UI/CompanyLogos';
+import sideimg from "@/assets/About-image.webp";
 
 const AboutPage = () => {
   const values = [
@@ -101,7 +102,7 @@ const AboutPage = () => {
               className="relative"
             >
               <img
-                src="https://videos.openai.com/vg-assets/assets%2Ftask_01k053nys2epj8y4h0jndd4aba%2F1752518524_img_0.webp?st=2025-07-14T17%3A25%3A25Z&se=2025-07-20T18%3A25%3A25Z&sks=b&skt=2025-07-14T17%3A25%3A25Z&ske=2025-07-20T18%3A25%3A25Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=zdNW2COa5QQJigYmd9i7rIbovmC90oKuthxAR3Jf2Ts%3D&az=oaivgprodscus"
+                src={sideimg}
                 alt="Professional chauffeur service"
                 className="rounded-lg shadow-lg w-full h-96 object-cover"
               />
