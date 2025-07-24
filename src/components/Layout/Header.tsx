@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, MessageCircle, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
+import logo from "@/assets/vip-logo.webp";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -29,7 +30,7 @@ const Header = () => {
           {/* Logo - Responsive sizing */}
           <Link to="/" className="flex items-center space-x-2 flex-shrink-0 min-w-0">
             <img
-              src="https://videos.openai.com/vg-assets/assets%2Ftask_01k0523827ebprhhv3tkcgt3k8%2F1752516734_img_1.webp?st=2025-07-14T17%3A06%3A33Z&se=2025-07-20T18%3A06%3A33Z&sks=b&skt=2025-07-14T17%3A06%3A33Z&ske=2025-07-20T18%3A06%3A33Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=pfCeUONCAMbXWVYDEZNbXMl3V%2Bpuw072y%2B6rjt3UTkg%3D&az=oaivgprodscus"
+              src={logo}
               alt="VIP Transport Logo"
               className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 object-cover rounded-full flex-shrink-0"
             />
