@@ -1,6 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Clock, Users, CheckCircle, Star, Award } from 'lucide-react';
+import realtime from "@/assets/realtime.webp";
+import follow from "@/assets/follow-up.webp";
+import planning from "@/assets/planning.webp";
+import consultation from "@/assets/consultation.webp";
 
 const ExperiencePage = () => {
   const serviceStandards = [
@@ -179,26 +183,23 @@ const ExperiencePage = () => {
                 step: '01',
                 title: 'Consultation',
                 description: 'We discuss your requirements and tailor our service to your needs',
-                iconImage: 'https://videos.openai.com/vg-assets/assets%2Ftask_01k0efygqee4tb79846aazk92d%2F1752833233_img_0.webp?st=2025-07-18T08%3A31%3A03Z&se=2025-07-24T09%3A31%3A03Z&sks=b&skt=2025-07-18T08%3A31%3A03Z&ske=2025-07-24T09%3A31%3A03Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=KW%2BZ80LrcZNXfOZWKS4%2FDBXtxQN5INQYpQX7DdIBOu0%3D&az=oaivgprodscus'
+                iconImage:consultation 
               },
               {
                 step: '02',
                 title: 'Planning',
                 description: 'Route planning, vehicle selection, and schedule coordination',
-                iconImage: 'https://videos.openai.com/vg-assets/assets%2Ftask_01k0efz4azes0a65pjw1nc1dhr%2F1752833287_img_0.webp?st=2025-07-18T08%3A50%3A57Z&se=2025-07-24T09%3A50%3A57Z&sks=b&skt=2025-07-18T08%3A50%3A57Z&ske=2025-07-24T09%3A50%3A57Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=pyoIx4GbDWJWKc7PhKQL9Qi1Tkoj%2FO2D3jEJDtD5o74%3D&az=oaivgprodscus'
-              },
+                iconImage: planning},
               {
                 step: '03',
                 title: 'Execution',
                 description: 'Professional service delivery with real-time monitoring',
-                iconImage: 'https://videos.openai.com/vg-assets/assets%2Ftask_01k0egkpq2f76vj2b6y5fh714e%2F1752833943_img_0.webp?st=2025-07-18T08%3A29%3A40Z&se=2025-07-24T09%3A29%3A40Z&sks=b&skt=2025-07-18T08%3A29%3A40Z&ske=2025-07-24T09%3A29%3A40Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=ypbFDcW%2BbD8BBG3VWeawIQ3CDcbvgm7BnduXKseBQJ8%3D&az=oaivgprodscus'
-              },
+                iconImage: realtime },
               {
                 step: '04',
                 title: 'Follow-up',
                 description: 'Post-service feedback and continuous improvement',
-                iconImage: 'https://videos.openai.com/vg-assets/assets%2Ftask_01k0egmagrfcktmqpc699t4h4p%2F1752833971_img_0.webp?st=2025-07-18T08%3A31%3A21Z&se=2025-07-24T09%3A31%3A21Z&sks=b&skt=2025-07-18T08%3A31%3A21Z&ske=2025-07-24T09%3A31%3A21Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=1yEND6z2eeZbye4lFJ8RG0xTCiQ7Nahji3jDWPuNfRw%3D&az=oaivgprodscus'
-              }
+                iconImage: follow}
             ].map((process, index) => (
               <motion.div
                 key={index}
