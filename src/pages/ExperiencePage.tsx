@@ -5,6 +5,9 @@ import realtime from "@/assets/realtime.webp";
 import follow from "@/assets/follow-up.webp";
 import planning from "@/assets/planning.webp";
 import consultation from "@/assets/consultation.webp";
+import selection from "@/assets/selection.webp";
+import chaffers from "@/assets/chaffers.webp";
+import navigation from "@/assets/navigation.webp";
 
 const ExperiencePage = () => {
   const serviceStandards = [
@@ -12,26 +15,22 @@ const ExperiencePage = () => {
       icon: Shield,
       title: 'Vehicle Selection Process',
       description: 'Each vehicle is hand-selected based on your specific requirements, event type, and journey needs. We maintain a diverse fleet of premium vehicles, all meticulously maintained to the highest standards.',
-      backgroundImage: 'https://videos.openai.com/vg-assets/assets%2Ftask_01k0ef9kghea1vacceyt8ah740%2F1752832552_img_0.webp?st=2025-07-18T08%3A31%3A06Z&se=2025-07-24T09%3A31%3A06Z&sks=b&skt=2025-07-18T08%3A31%3A06Z&ske=2025-07-24T09%3A31%3A06Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=v2B9I%2Fak4nnoTCzZ002bK2OV2DENvVowuNauoeFtCz4%3D&az=oaivgprodscus'
-    },
+      backgroundImage: selection},
     {
       icon: Users,
       title: 'Professional Chauffeur Standards',
       description: 'Our chauffeurs undergo rigorous selection and training processes. They are fully licensed, uniformed professionals with extensive local knowledge and customer service expertise.',
-      backgroundImage: 'https://videos.openai.com/vg-assets/assets%2Ftask_01k0egzbnqeha9b2449wg6x875%2F1752834313_img_0.webp?st=2025-07-18T09%3A26%3A03Z&se=2025-07-24T10%3A26%3A03Z&sks=b&skt=2025-07-18T09%3A26%3A03Z&ske=2025-07-24T10%3A26%3A03Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=KF%2BBFpfH4P%2FUAr14if2DVyfxmmiBZmAlMBJeUu%2FceTA%3D&az=oaivgprodscus'
-    },
+      backgroundImage: chaffers},
     {
       icon: Clock,
       title: 'Journey Planning & Coordination',
       description: 'Every journey is meticulously planned with real-time traffic monitoring, alternative route planning, and coordination with your schedule to ensure punctual arrivals.',
-      backgroundImage: 'https://videos.openai.com/vg-assets/assets%2Ftask_01k0egzjyafmkagsn950ktw67z%2F1752834363_img_0.webp?st=2025-07-18T09%3A24%3A40Z&se=2025-07-24T10%3A24%3A40Z&sks=b&skt=2025-07-18T09%3A24%3A40Z&ske=2025-07-24T10%3A24%3A40Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=%2FhxNkrXWj%2BImfqfb9wqOkzCnCV9YEztYSrIRVShnI6A%3D&az=oaivgprodscus'
-    },
+      backgroundImage: navigation},
     {
       icon: CheckCircle,
       title: 'Service Reliability',
       description: 'We guarantee consistent, reliable service with 24/7 operational support, real-time journey tracking, and immediate assistance when needed.',
-      backgroundImage: 'https://videos.openai.com/vg-assets/assets%2Ftask_01k0eh6ansfe2tnppv60vwvx23%2F1752834551_img_0.webp?st=2025-07-18T09%3A26%3A00Z&se=2025-07-24T10%3A26%3A00Z&sks=b&skt=2025-07-18T09%3A26%3A00Z&ske=2025-07-24T10%3A26%3A00Z&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skoid=3d249c53-07fa-4ba4-9b65-0bf8eb4ea46a&skv=2019-02-02&sv=2018-11-09&sr=b&sp=r&spr=https%2Chttp&sig=sJqUom2P4I86HfBIMxYUi2aFYbYkw6gQJw7dihtqOO4%3D&az=oaivgprodscus'
-    }
+      backgroundImage: follow}
   ];
 
   const experienceFeatures = [
