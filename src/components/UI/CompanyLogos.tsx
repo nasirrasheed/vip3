@@ -16,7 +16,7 @@ interface CompanyLogosProps {
 }
 
 const CompanyLogos: React.FC<CompanyLogosProps> = ({ 
-  title = "Trusted by Leading Organizations",
+  title = "Trusted by Leading Organisations",
   subtitle = "We proudly serve prestigious clients across various industries"
 }) => {
   const [logos, setLogos] = useState<CompanyLogo[]>([]);
