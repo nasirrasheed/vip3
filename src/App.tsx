@@ -23,6 +23,8 @@ import ContactPage from './pages/ContactPage';
 import ReviewSubmissionPage from './pages/ReviewSubmissionPage';
 import TestimonialsPage from './pages/TestimonialsPage';
 import CloseProtectionPage from './pages/CloseProtectionPage';
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import CookiePolicy from "./pages/CookiePolicy";
 
 // Protected Route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -57,6 +59,9 @@ function App() {
           <Route path="contact" element={<ContactPage />} />
           <Route path="reviews" element={<ReviewSubmissionPage />} />
           <Route path="testimonials" element={<TestimonialsPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+         
         </Route>
 
         {/* Admin routes */}
