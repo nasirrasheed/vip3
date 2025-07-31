@@ -123,6 +123,15 @@ const Footer = () => {
             >
               Cookie Policy
             </Link>
+            <span className="hidden sm:inline text-muted-foreground">|</span>
+            <a 
+              href="https://marknova.co.uk" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-gold transition-colors underline"
+            >
+              Created By MarkNova
+            </a>
           </div>
         </div>
       </div>
