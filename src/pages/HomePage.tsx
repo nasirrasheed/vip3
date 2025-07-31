@@ -189,7 +189,7 @@ const HomePage = () => {
               Speak With Our Team Today
             </h2>
             <p className="text-xl text-gray-300 mb-8">
-              Ready to experience premium transport services? Contact us for a personalized quote.
+              Ready to experience premium transport services? Contact us for a personalised quote.
             </p>
             <button
               onClick={() => navigate('/contact')}
