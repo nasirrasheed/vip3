@@ -8,6 +8,7 @@ import consultation from "@/assets/consultation.webp";
 import selection from "@/assets/selection.webp";
 import chaffers from "@/assets/chaffers.webp";
 import navigation from "@/assets/navigation.webp";
+import chaffer2 from "@/assets/chaffer01.webp";
 
 const ExperiencePage = () => {
   const serviceStandards = [
@@ -20,7 +21,7 @@ const ExperiencePage = () => {
       icon: Users,
       title: 'Professional Chauffeur Standards',
       description: 'Our chauffeurs undergo rigorous selection and training processes. They are fully licensed, uniformed professionals with extensive local knowledge and customer service expertise.',
-      backgroundImage: chaffers},
+      backgroundImage: chaffer2},
     {
       icon: Clock,
       title: 'Journey Planning & Coordination',
