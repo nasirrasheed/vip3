@@ -125,7 +125,7 @@ const Footer = () => {
             </Link>
             <span className="hidden sm:inline text-muted-foreground">|</span>
             <a 
-              href="https://marknova.co.uk" 
+              href="https://marknova.vercel.app/" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-gold transition-colors underline"
