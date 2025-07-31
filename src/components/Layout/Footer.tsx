@@ -111,14 +111,14 @@ const Footer = () => {
           <p className="mb-4">&copy; {currentYear} VIP Transport and Security. All rights reserved. | Licensed and Regulated Transport Services</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link 
-              to="/privacy-policy" 
+              to="/PrivacyPolicy" 
               className="text-muted-foreground hover:text-gold transition-colors underline"
             >
               Privacy Policy
             </Link>
             <span className="hidden sm:inline text-muted-foreground">|</span>
             <Link 
-              to="/cookie-policy" 
+              to="/CookiePolicy" 
               className="text-muted-foreground hover:text-gold transition-colors underline"
             >
               Cookie Policy
