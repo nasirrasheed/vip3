@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, ChatConversation } from '../lib/supabase';
+import { supabase, ChatConversation } from '../../lib/supabase';
 
 export default function ChatConversations() {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
@@ -8,6 +8,7 @@ export default function ChatConversations() {
 
   useEffect(() => {
     fetchConversations();
+    setupRealtimeUpdates();
   }, []);
 
   const fetchConversations = async () => {
@@ -23,10 +24,25 @@ export default function ChatConversations() {
       setConversations(data || []);
     } catch (err) {
       console.error('Error fetching conversations:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to load conversations');
     } finally {
       setLoading(false);
     }
+  };
+
+  const setupRealtimeUpdates = () => {
+    const channel = supabase
+      .channel('chat_conversations_updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'chat_conversations'
+      }, () => fetchConversations())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   };
 
   if (loading) return <div className="p-4">Loading conversations...</div>;
@@ -87,4 +103,4 @@ export default function ChatConversations() {
       </div>
     </div>
   );
-} 
+}
