@@ -30,7 +30,7 @@ export default function AIBookingAssistant() {
     if (error) {
       console.error('Error updating status:', error);
     } else {
-      fetchBookings(); // Refresh the list
+      fetchBookings();
     }
   };
 
@@ -59,8 +59,8 @@ export default function AIBookingAssistant() {
               <td>{booking.dropoff_location}</td>
               <td>{booking.booking_date}</td>
               <td>{booking.booking_time}</td>
-              <td>{booking.number_of_passengers}</td>
-              <td>{booking.vehicle_type}</td>
+              <td>{booking.passenger_count}</td>
+              <td>{booking.vehicle_preference}</td>
               <td>{booking.status}</td>
               <td>
                 <select
@@ -82,4 +82,3 @@ export default function AIBookingAssistant() {
     </div>
   );
 }
-
