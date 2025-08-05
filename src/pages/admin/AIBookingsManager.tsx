@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, AIBooking } from '../lib/supabase';
+import { supabase, AIBooking } from '../lib/supabase'; 
 
 export default function AIBookingsManager() {
   const [bookings, setBookings] = useState<AIBooking[]>([]);
