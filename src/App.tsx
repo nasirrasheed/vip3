@@ -82,7 +82,7 @@ function App() {
           <Route path="inquiries" element={<InquiriesManager />} />
           <Route path="testimonials" element={<TestimonialsManager />} />
           <Route path="ai-bookings" element={<AIBookingsManager />} />
-          <Route path="conversations" element={<ChatConversations />} />
+          <Route path="chat_conversations" element={<ChatConversations />} />
           
           <Route index element={<Navigate to="/admin/dashboard" />} />
         </Route>
