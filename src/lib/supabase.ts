@@ -16,8 +16,8 @@ export type Service = {
   features?: string[];
   order_index: number;
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at???: string;
+  updated_at????: string;
 };
 
 export type BlogPost = {
@@ -29,8 +29,8 @@ export type BlogPost = {
   featured_image_url?: string;
   author: string;
   is_published: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at??: string;
+  updated_at?????: string;
 };
 
 export type Testimonial = {
@@ -41,7 +41,7 @@ export type Testimonial = {
   rating: number;
   service_type?: string;
   is_active: boolean;
-  created_at: string;
+  created_at?: string;
 };
 
 export type GalleryImage = {
@@ -53,7 +53,7 @@ export type GalleryImage = {
   caption?: string;
   order_index: number;
   is_active: boolean;
-  created_at: string;
+  created_at?: string;
 };
 
 export type Inquiry = {
@@ -65,7 +65,7 @@ export type Inquiry = {
   preferred_date?: string;
   message: string;
   status: string;
-  created_at: string;
+  created_at?: string;
 };
 
 export type CompanyLogo = {
@@ -74,7 +74,7 @@ export type CompanyLogo = {
   logo_url: string;
   order_index: number;
   is_active: boolean;
-  created_at: string;
+  created_at?: string;
 };
 
 export type AIBooking = {
@@ -94,8 +94,8 @@ export type AIBooking = {
   extracted_data: any;
   status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
   admin_notes?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?????: string;
 };
 
 export type ChatConversation = {
@@ -104,6 +104,6 @@ export type ChatConversation = {
   messages: any[];
   booking_id?: string;
   status: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at????: string;
 };
