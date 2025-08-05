@@ -12,7 +12,7 @@ import CompanyLogosManager from './pages/admin/CompanyLogosManager';
 import InquiriesManager from './pages/admin/InquiriesManager';
 import TestimonialsManager from './pages/admin/TestimonialsManager';
 import AIBookingsManager from './pages/admin/AIBookingsManager';
-import ChatConversations from './admin/ChatConversations';
+import ChatConversations from './pages/admin/ChatConversations';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import ExperiencePage from './pages/ExperiencePage';
