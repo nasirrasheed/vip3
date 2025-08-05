@@ -82,23 +82,36 @@ Please respond...`;
   }
 
   private async saveBookingToSupabase() {
-    const { error } = await supabase.from('ai_bookings').insert({
-      ...this.extractedData,
-      conversation_id: this.sessionId,
-      extracted_data: this.extractedData,
-      status: 'pending'
-    });
-    if (error) console.error('Error saving booking:', error);
-  }
+   const { error } = await supabase.from('ai_bookings').insert({
+  conversation_id: this.sessionId,
+  customer_name: this.extractedData.customer_name,
+  pickup_location: this.extractedData.pickup_location,
+  dropoff_location: this.extractedData.dropoff_location,
+  booking_date: this.extractedData.booking_date,
+  booking_time: this.extractedData.booking_time,
+  number_of_passengers: this.extractedData.passenger_count, // renamed
+  vehicle_type: this.extractedData.vehicle_preference,      // renamed
+  notes: this.extractedData.special_requirements,           // renamed
+  extracted_data: this.extractedData,
+  status: 'pending',
+});
+
 
   private async saveConversation() {
-    const { error } = await supabase.from('chat_conversations').upsert({
-      session_id: this.sessionId,
-      messages: this.conversationHistory,
-      status: 'completed'
-    }, { onConflict: 'session_id' });
-    if (error) console.error('Error saving conversation:', error);
-  }
+   const { error } = await supabase.from('chat_conversations').upsert({
+  session_id: this.sessionId,
+  messages: this.conversationHistory,
+  booking_id: bookingInsertResult.data?.[0]?.id ?? null,
+  status: 'completed',
+  updated_at: new Date().toISOString(),
+}, {
+  onConflict: 'session_id',
+});
+
+if (error) {
+  console.error('Error saving conversation:', error);
+}
+
 
   private extractBookingData(message: string): void {
     const lower = message.toLowerCase();
