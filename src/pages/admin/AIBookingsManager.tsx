@@ -21,6 +21,19 @@ export default function AIBookingAssistant() {
     }
   };
 
+  const updateStatus = async (id: string, newStatus: AIBooking['status']) => {
+    const { error } = await supabase
+      .from('ai_bookings')
+      .update({ status: newStatus })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating status:', error);
+    } else {
+      fetchBookings(); // Refresh the list
+    }
+  };
+
   return (
     <div>
       <h1>AI Bookings</h1>
@@ -35,10 +48,11 @@ export default function AIBookingAssistant() {
             <th>Passengers</th>
             <th>Vehicle</th>
             <th>Status</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {bookings.map(booking => (
+          {bookings.map((booking) => (
             <tr key={booking.id}>
               <td>{booking.customer_name}</td>
               <td>{booking.pickup_location}</td>
@@ -48,6 +62,19 @@ export default function AIBookingAssistant() {
               <td>{booking.number_of_passengers}</td>
               <td>{booking.vehicle_type}</td>
               <td>{booking.status}</td>
+              <td>
+                <select
+                  value={booking.status}
+                  onChange={(e) =>
+                    updateStatus(booking.id, e.target.value as AIBooking['status'])
+                  }
+                >
+                  <option value="pending">Pending</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </td>
             </tr>
           ))}
         </tbody>
