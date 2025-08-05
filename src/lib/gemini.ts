@@ -97,16 +97,14 @@ Please respond...`;
 });
 
 
-  private async saveConversation() {
-   const { error } = await supabase.from('chat_conversations').upsert({
-  session_id: this.sessionId,
-  messages: this.conversationHistory,
-  booking_id: bookingInsertResult.data?.[0]?.id ?? null,
-  status: 'completed',
-  updated_at: new Date().toISOString(),
-}, {
-  onConflict: 'session_id',
-});
+private async saveConversation() {
+    const { error } = await supabase.from('chat_conversations').upsert({
+      session_id: this.sessionId,
+      messages: this.conversationHistory,
+      status: 'completed'
+    }, { onConflict: 'session_id' });
+    if (error) console.error('Error saving conversation:', error);
+  }
 
 if (error) {
   console.error('Error saving conversation:', error);
