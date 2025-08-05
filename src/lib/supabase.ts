@@ -5,7 +5,7 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 export type Service = {
-  id: string;
+  id: string; 
   title: string;
   slug: string;
   description: string;
