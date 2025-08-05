@@ -1,7 +1,3 @@
-// Based on all the code you've provided, here's a comprehensive check and fix pass across your system
-// to ensure AI bookings are saved and shown in the admin panel.
-
-// --- FILE: lib/gemini.ts ---
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from './supabase';
 
@@ -39,7 +35,9 @@ export class VIPBookingAssistant {
   }
 
   private getSystemPrompt(): string {
-    return `You are a professional VIP transport booking assistant for VIP Transport and Security...`;
+    return `You are a professional VIP transport booking assistant...
+BOOKING_READY_FOR_SUBMISSION
+Current extracted data: ${JSON.stringify(this.extractedData)}`;
   }
 
   async processMessage(userMessage: string): Promise<{ response: string; bookingReady: boolean; extractedData: BookingData }> {
@@ -47,10 +45,8 @@ export class VIPBookingAssistant {
     this.extractBookingData(userMessage);
 
     const prompt = `${this.getSystemPrompt()}
-
 CONVERSATION HISTORY:
 ${this.conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
-
 Please respond...`;
 
     try {
@@ -82,34 +78,31 @@ Please respond...`;
   }
 
   private async saveBookingToSupabase() {
-   const { error } = await supabase.from('ai_bookings').insert({
-  conversation_id: this.sessionId,
-  customer_name: this.extractedData.customer_name,
-  pickup_location: this.extractedData.pickup_location,
-  dropoff_location: this.extractedData.dropoff_location,
-  booking_date: this.extractedData.booking_date,
-  booking_time: this.extractedData.booking_time,
-  number_of_passengers: this.extractedData.passenger_count, // renamed
-  vehicle_type: this.extractedData.vehicle_preference,      // renamed
-  notes: this.extractedData.special_requirements,           // renamed
-  extracted_data: this.extractedData,
-  status: 'pending',
-});
+    const { error } = await supabase.from('ai_bookings').insert({
+      conversation_id: this.sessionId,
+      customer_name: this.extractedData.customer_name,
+      pickup_location: this.extractedData.pickup_location,
+      dropoff_location: this.extractedData.dropoff_location,
+      booking_date: this.extractedData.booking_date,
+      booking_time: this.extractedData.booking_time,
+      number_of_passengers: this.extractedData.passenger_count,
+      vehicle_type: this.extractedData.vehicle_preference,
+      notes: this.extractedData.special_requirements,
+      extracted_data: this.extractedData,
+      status: 'pending',
+    });
+    if (error) console.error('Error saving booking:', error);
+  }
 
-
-private async saveConversation() {
+  private async saveConversation() {
     const { error } = await supabase.from('chat_conversations').upsert({
       session_id: this.sessionId,
       messages: this.conversationHistory,
       status: 'completed'
     }, { onConflict: 'session_id' });
+
     if (error) console.error('Error saving conversation:', error);
   }
-
-if (error) {
-  console.error('Error saving conversation:', error);
-}
-
 
   private extractBookingData(message: string): void {
     const lower = message.toLowerCase();
