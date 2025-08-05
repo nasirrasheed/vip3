@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, AIBooking } from '../lib/supabase'; 
+import { supabase, AIBooking } from '../../lib/supabase'; 
 
 export default function AIBookingsManager() {
   const [bookings, setBookings] = useState<AIBooking[]>([]);
@@ -8,6 +8,7 @@ export default function AIBookingsManager() {
 
   useEffect(() => {
     fetchBookings();
+    setupRealtimeUpdates();
   }, []);
 
   const fetchBookings = async () => {
@@ -23,10 +24,25 @@ export default function AIBookingsManager() {
       setBookings(data || []);
     } catch (err) {
       console.error('Error fetching bookings:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to load bookings');
     } finally {
       setLoading(false);
     }
+  };
+
+  const setupRealtimeUpdates = () => {
+    const channel = supabase
+      .channel('ai_bookings_updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'ai_bookings'
+      }, () => fetchBookings())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   };
 
   const updateStatus = async (id: string, newStatus: AIBooking['status']) => {
@@ -40,10 +56,9 @@ export default function AIBookingsManager() {
         .eq('id', id);
 
       if (error) throw error;
-      fetchBookings();
     } catch (err) {
       console.error('Error updating status:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to update status');
     }
   };
 
@@ -58,6 +73,7 @@ export default function AIBookingsManager() {
         <table className="min-w-full bg-white rounded-lg overflow-hidden">
           <thead className="bg-gray-100">
             <tr>
+              <th className="py-2 px-4 border-b">ID</th>
               <th className="py-2 px-4 border-b">Customer</th>
               <th className="py-2 px-4 border-b">Email</th>
               <th className="py-2 px-4 border-b">Pickup</th>
@@ -73,13 +89,14 @@ export default function AIBookingsManager() {
           <tbody>
             {bookings.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-4 text-center text-gray-500">
+                <td colSpan={11} className="py-4 text-center text-gray-500">
                   No bookings found
                 </td>
               </tr>
             ) : (
               bookings.map((booking) => (
                 <tr key={booking.id} className="hover:bg-gray-50">
+                  <td className="py-2 px-4 border-b text-xs text-gray-500">{booking.id.slice(0, 8)}...</td>
                   <td className="py-2 px-4 border-b">{booking.customer_name || '-'}</td>
                   <td className="py-2 px-4 border-b">{booking.customer_email || '-'}</td>
                   <td className="py-2 px-4 border-b">{booking.pickup_location || '-'}</td>
