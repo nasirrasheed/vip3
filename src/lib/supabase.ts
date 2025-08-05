@@ -3,7 +3,18 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Enhanced Supabase client with better error handling
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  db: {
+    schema: 'public'
+  },
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true
+  }
+});
+
+
 
 // Type definitions
 export type Service = {
@@ -109,34 +120,88 @@ export type ChatConversation = {
   updated_at: string;
 };
 
-// Helper functions
+// Enhanced helper functions with better logging
 export const createAIBooking = async (bookingData: Omit<AIBooking, 'id' | 'created_at' | 'updated_at'>) => {
-  const { data, error } = await supabase
-    .from('ai_bookings')
-    .insert([bookingData])
-    .select();
+  console.log('Attempting to create booking:', bookingData);
   
-  if (error) throw error;
-  return data?.[0];
+  try {
+    const { data, error, status } = await supabase
+      .from('ai_bookings')
+      .insert([{
+        ...bookingData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select();
+
+    console.log('Insert status:', status);
+    
+    if (error) {
+      console.error('Supabase insertion error:', error);
+      throw error;
+    }
+
+    console.log('Booking created successfully:', data);
+    return data?.[0];
+  } catch (error) {
+    console.error('Failed to create booking:', error);
+    throw error;
+  }
 };
 
 export const createChatConversation = async (conversationData: Omit<ChatConversation, 'id' | 'created_at' | 'updated_at'>) => {
-  const { data, error } = await supabase
-    .from('chat_conversations')
-    .insert([conversationData])
-    .select();
-  
-  if (error) throw error;
-  return data?.[0];
+  try {
+    const { data, error } = await supabase
+      .from('chat_conversations')
+      .insert([{
+        ...conversationData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select();
+    
+    if (error) {
+      console.error('Chat conversation error:', error);
+      throw error;
+    }
+    return data?.[0];
+  } catch (error) {
+    console.error('Failed to create conversation:', error);
+    throw error;
+  }
 };
 
 export const updateChatConversation = async (sessionId: string, updates: Partial<ChatConversation>) => {
-  const { data, error } = await supabase
-    .from('chat_conversations')
-    .update(updates)
-    .eq('session_id', sessionId)
-    .select();
-  
-  if (error) throw error;
-  return data?.[0];
+  try {
+    const { data, error } = await supabase
+      .from('chat_conversations')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('session_id', sessionId)
+      .select();
+    
+    if (error) throw error;
+    return data?.[0];
+  } catch (error) {
+    console.error('Failed to update conversation:', error);
+    throw error;
+  }
+};
+
+// Add a function to check connection
+export const checkSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('ai_bookings')
+      .select('*')
+      .limit(1);
+    
+    if (error) throw error;
+    return { connected: true, data };
+  } catch (error) {
+    console.error('Supabase connection check failed:', error);
+    return { connected: false, error };
+  }
 };
