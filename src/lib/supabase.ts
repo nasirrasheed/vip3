@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -77,6 +76,8 @@ export type CompanyLogo = {
   created_at?: string;
 };
 
+
+
 export type AIBooking = {
   id: string;
   conversation_id: string;
@@ -104,6 +105,6 @@ export type ChatConversation = {
   messages: { role: string; content: string }[];
   booking_id?: string;
   status?: string;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
+  updated_at: string;
 };
