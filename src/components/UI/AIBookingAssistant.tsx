@@ -20,24 +20,9 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-  const [currentQuestion, setCurrentQuestion] = useState<number>(0);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const assistantRef = useRef<VIPBookingAssistant | null>(null);
-
-  // Conversation flow questions
-  const bookingQuestions = [
-    "May I have your full name, please?",
-    "What's the best email address to contact you?",
-    "Could you share a phone number for booking updates?",
-    "Where would you like to be picked up?",
-    "What's your destination?",
-    "When would you like to travel? (Date)",
-    "What time would you prefer for pickup?",
-    "How many passengers will there be?",
-    "Do you have any preferred vehicle type?",
-    "Any special requirements we should know about?"
-  ];
 
   // Initialize the assistant
   useEffect(() => {
@@ -56,12 +41,10 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
     if (isOpen && messages.length === 0) {
       const welcomeMessage: ChatMessage = {
         role: 'assistant',
-        content: "Hello! I'm your VIP Transport booking assistant. I'll guide you through the booking process step by step. " + 
-                 "May I begin with your name, please?",
+        content: "Hello! I'm your VIP Transport booking assistant. I'm here to help you arrange luxury chauffeur services. How can I assist you today?",
         timestamp: new Date()
       };
       setMessages([welcomeMessage]);
-      setCurrentQuestion(0);
     }
   }, [isOpen, messages.length]);
 
@@ -87,17 +70,9 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
       // Process the message through the AI assistant
       const result = await assistantRef.current.processMessage(inputMessage);
       
-      let assistantResponse = result.response;
-      
-      // If we have more questions to ask
-      if (!result.bookingReady && currentQuestion < bookingQuestions.length - 1) {
-        setCurrentQuestion(prev => prev + 1);
-        assistantResponse = bookingQuestions[currentQuestion + 1];
-      }
-
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: assistantResponse,
+        content: result.response,
         timestamp: new Date()
       };
 
@@ -113,19 +88,16 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
           
           const confirmationMessage: ChatMessage = {
             role: 'assistant',
-            content: `Thank you for your booking! Your reservation #${booking?.id.slice(0, 8)} has been confirmed. ` +
-                     `We'll send the details to your email shortly. Is there anything else I can assist you with?`,
+            content: `Perfect! Your booking #${booking?.id.slice(0, 8)} has been submitted. You'll receive a confirmation soon. Need anything else?`,
             timestamp: new Date()
           };
           
           setMessages(prev => [...prev, confirmationMessage]);
-          setCurrentQuestion(0); // Reset questions for new conversation
         } catch (bookingError) {
           console.error('Booking submission error:', bookingError);
           const errorMessage: ChatMessage = {
             role: 'assistant',
-            content: "I apologize for the inconvenience, but I'm having trouble completing your booking. " +
-                     "Please try again or contact us directly at 07464 247 007 for immediate assistance.",
+            content: "I couldn't complete your booking. Please try again or contact us directly at 07464 247 007.",
             timestamp: new Date()
           };
           setMessages(prev => [...prev, errorMessage]);
@@ -135,8 +107,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
       console.error('Error processing message:', error);
       const errorMessage: ChatMessage = {
         role: 'assistant',
-        content: "I'm sorry, I'm experiencing some technical difficulties. " +
-                 "Please try again in a moment or contact us directly for faster service.",
+        content: "I'm having some trouble. Please try again or contact us directly at 07464 247 007.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -152,7 +123,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
         content: msg.content
       }));
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('chat_conversations')
         .upsert({
           session_id: sessionId,
@@ -161,14 +132,12 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
           status: 'active'
         }, {
           onConflict: 'session_id'
-        })
-        .select();
+        });
 
       if (error) throw error;
-      return data;
     } catch (error) {
       console.error('Error saving conversation:', error);
-      throw error;
+      // Don't show this error to the user as it's a background process
     }
   };
 
@@ -191,22 +160,15 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
         passenger_count: bookingData.passengers ? parseInt(bookingData.passengers) : null,
         special_requirements: bookingData.requirements || '',
         extracted_data: bookingData,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        status: 'pending'
       };
-
-      console.log('Submitting booking:', formattedBooking);
 
       const { data, error } = await supabase
         .from('ai_bookings')
         .insert([formattedBooking])
         .select();
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       // Update conversation with booking ID
       if (data && data[0]) {
