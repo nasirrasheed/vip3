@@ -27,14 +27,11 @@ export default function ChatConversations() {
       <ul>
         {conversations.map((conv) => (
           <li key={conv.id}>
-            <strong>Session:</strong> {conv.session_id}
-            <br />
+            <strong>Session:</strong> {conv.session_id}<br />
             <strong>Messages:</strong>
             <ul>
-              {conv.messages.map((msg: any, index: number) => (
-                <li key={index}>
-                  <strong>{msg.role}</strong>: {msg.content}
-                </li>
+              {conv.messages?.map((msg, idx) => (
+                <li key={idx}><strong>{msg.role}</strong>: {msg.content}</li>
               ))}
             </ul>
             <hr />
