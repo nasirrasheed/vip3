@@ -6,9 +6,13 @@ import { supabase, ChatConversation } from '../../lib/supabase';
 
 interface AIBookingAssistantProps {
   isVisible?: boolean;
+  position?: 'bottom-right' | 'bottom-left';
 }
 
-const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = true }) => {
+const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ 
+  isVisible = true, 
+  position = 'bottom-right' 
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -20,16 +24,19 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const assistantRef = useRef<VIPBookingAssistant | null>(null);
 
+  // Initialize the assistant
   useEffect(() => {
     if (!assistantRef.current) {
       assistantRef.current = new VIPBookingAssistant();
     }
   }, []);
 
+  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  // Show welcome message when opened
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const welcomeMessage: ChatMessage = {
@@ -60,6 +67,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
     setError(null);
 
     try {
+      // Process the message through the AI assistant
       const result = await assistantRef.current.processMessage(inputMessage);
       
       const assistantMessage: ChatMessage = {
@@ -74,23 +82,32 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
       await saveConversation([...messages, userMessage, assistantMessage]);
 
       // If booking is ready, submit it
-      if (result.bookingReady) {
-        const booking = await submitBooking(result.extractedData);
-        
-        const confirmationMessage: ChatMessage = {
-          role: 'assistant',
-          content: `Perfect! Your booking #${booking?.id.slice(0, 8)} has been submitted. You'll receive a confirmation soon. Need anything else?`,
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, confirmationMessage]);
+      if (result.bookingReady && result.extractedData) {
+        try {
+          const booking = await submitBooking(result.extractedData);
+          
+          const confirmationMessage: ChatMessage = {
+            role: 'assistant',
+            content: `Perfect! Your booking #${booking?.id.slice(0, 8)} has been submitted. You'll receive a confirmation soon. Need anything else?`,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, confirmationMessage]);
+        } catch (bookingError) {
+          console.error('Booking submission error:', bookingError);
+          const errorMessage: ChatMessage = {
+            role: 'assistant',
+            content: "I couldn't complete your booking. Please try again or contact us directly at 07464 247 007.",
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, errorMessage]);
+        }
       }
     } catch (error) {
       console.error('Error processing message:', error);
-      setError("I'm having trouble connecting. Please try again or call us directly.");
       const errorMessage: ChatMessage = {
         role: 'assistant',
-        content: "I'm experiencing technical difficulties. Please try again or contact us directly at 07464 247 007.",
+        content: "I'm having some trouble. Please try again or contact us directly at 07464 247 007.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -120,7 +137,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
       if (error) throw error;
     } catch (error) {
       console.error('Error saving conversation:', error);
-      throw error;
+      // Don't show this error to the user as it's a background process
     }
   };
 
@@ -180,6 +197,12 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
 
   if (!isVisible) return null;
 
+  // Position classes based on prop
+  const positionClasses = {
+    'bottom-right': 'right-6',
+    'bottom-left': 'left-6'
+  };
+
   return (
     <>
       {/* Chat Widget Button */}
@@ -190,9 +213,10 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 left-6 z-50 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+            className={`fixed bottom-6 ${positionClasses[position]} z-50 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110`}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
+            aria-label="Open chat assistant"
           >
             <MessageCircle className="w-6 h-6" />
             <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
@@ -214,7 +238,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
               height: isMinimized ? 60 : 500
             }}
             exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            className="fixed bottom-6 left-6 z-50 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden"
+            className={`fixed bottom-6 ${positionClasses[position]} z-50 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden`}
             style={{ width: '380px' }}
           >
             {/* Header */}
@@ -232,15 +256,20 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
                 <button
                   onClick={() => setIsMinimized(!isMinimized)}
                   className="hover:bg-black/10 p-1 rounded"
+                  aria-label={isMinimized ? 'Maximize' : 'Minimize'}
                 >
                   {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
                 </button>
                 <button
                   onClick={() => setIsOpen(false)}
                   className="hover:bg-black/10 p-1 rounded"
+                  aria-label="Close"
                 >
                   <X className="w-4 h-4" />
                 </button>
+              </div>
+              <div className="absolute bottom-1 right-2 text-[8px] text-black/50">
+                Created by MarkNova
               </div>
             </div>
 
@@ -314,9 +343,19 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
                       <Send className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Powered by AI • Your data is secure
-                  </p>
+                  <div className="flex justify-between items-center mt-2">
+                    <p className="text-xs text-gray-500">
+                      Powered by AI • Your data is secure
+                    </p>
+                    <a 
+                      href="https://marknova.vercel.app" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Created by MarkNova
+                    </a>
+                  </div>
                 </div>
               </>
             )}
