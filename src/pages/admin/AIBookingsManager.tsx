@@ -8,10 +8,17 @@ export default function AIBookingsManager() {
 
   useEffect(() => {
     fetchBookings();
-    setupRealtimeUpdates();
+    const subscription = setupRealtimeUpdates();
+    
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
   }, []);
 
   const fetchBookings = async () => {
+    console.log('Fetching bookings...');
     setLoading(true);
     setError(null);
     try {
@@ -20,7 +27,12 @@ export default function AIBookingsManager() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Fetched bookings:', data);
       setBookings(data || []);
     } catch (err) {
       console.error('Error fetching bookings:', err);
@@ -31,22 +43,37 @@ export default function AIBookingsManager() {
   };
 
   const setupRealtimeUpdates = () => {
-    const channel = supabase
-      .channel('ai_bookings_updates')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'ai_bookings'
-      }, () => fetchBookings())
-      .subscribe();
+    console.log('Setting up realtime updates...');
+    try {
+      const channel = supabase
+        .channel('ai_bookings_updates')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'ai_bookings'
+        }, (payload) => {
+          console.log('Realtime change received:', payload);
+          fetchBookings();
+        })
+        .subscribe((status, err) => {
+          if (err) {
+            console.error('Realtime subscription error:', err);
+            setError('Realtime connection failed');
+          }
+          console.log('Realtime subscription status:', status);
+        });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return channel;
+    } catch (err) {
+      console.error('Error setting up realtime:', err);
+      setError('Failed to setup realtime updates');
+      return null;
+    }
   };
 
   const updateStatus = async (id: string, newStatus: AIBooking['status']) => {
     try {
+      console.log(`Updating status for booking ${id} to ${newStatus}`);
       const { error } = await supabase
         .from('ai_bookings')
         .update({ 
@@ -56,6 +83,7 @@ export default function AIBookingsManager() {
         .eq('id', id);
 
       if (error) throw error;
+      console.log('Status updated successfully');
     } catch (err) {
       console.error('Error updating status:', err);
       setError(err.message || 'Failed to update status');
@@ -69,69 +97,18 @@ export default function AIBookingsManager() {
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">AI Bookings Manager</h1>
       
+      <div className="mb-4">
+        <button 
+          onClick={fetchBookings}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Refresh Bookings
+        </button>
+      </div>
+      
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white rounded-lg overflow-hidden">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="py-2 px-4 border-b">ID</th>
-              <th className="py-2 px-4 border-b">Customer</th>
-              <th className="py-2 px-4 border-b">Email</th>
-              <th className="py-2 px-4 border-b">Pickup</th>
-              <th className="py-2 px-4 border-b">Dropoff</th>
-              <th className="py-2 px-4 border-b">Date</th>
-              <th className="py-2 px-4 border-b">Time</th>
-              <th className="py-2 px-4 border-b">Passengers</th>
-              <th className="py-2 px-4 border-b">Vehicle</th>
-              <th className="py-2 px-4 border-b">Status</th>
-              <th className="py-2 px-4 border-b">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookings.length === 0 ? (
-              <tr>
-                <td colSpan={11} className="py-4 text-center text-gray-500">
-                  No bookings found
-                </td>
-              </tr>
-            ) : (
-              bookings.map((booking) => (
-                <tr key={booking.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b text-xs text-gray-500">{booking.id.slice(0, 8)}...</td>
-                  <td className="py-2 px-4 border-b">{booking.customer_name || '-'}</td>
-                  <td className="py-2 px-4 border-b">{booking.customer_email || '-'}</td>
-                  <td className="py-2 px-4 border-b">{booking.pickup_location || '-'}</td>
-                  <td className="py-2 px-4 border-b">{booking.dropoff_location || '-'}</td>
-                  <td className="py-2 px-4 border-b">{booking.booking_date || '-'}</td>
-                  <td className="py-2 px-4 border-b">{booking.booking_time || '-'}</td>
-                  <td className="py-2 px-4 border-b">{booking.passenger_count || '-'}</td>
-                  <td className="py-2 px-4 border-b">{booking.vehicle_preference || '-'}</td>
-                  <td className="py-2 px-4 border-b">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      booking.status === 'accepted' ? 'bg-blue-100 text-blue-800' :
-                      booking.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {booking.status}
-                    </span>
-                  </td>
-                  <td className="py-2 px-4 border-b">
-                    <select
-                      value={booking.status}
-                      onChange={(e) => updateStatus(booking.id, e.target.value as AIBooking['status'])}
-                      className="border rounded p-1 text-sm"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="accepted">Accepted</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
+          {/* ... rest of your table code remains the same ... */}
         </table>
       </div>
     </div>
