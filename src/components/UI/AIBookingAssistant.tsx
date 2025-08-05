@@ -1,5 +1,3 @@
-here is vip3/src/components/UI
-/AIBookingAssistant.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Minimize2, Maximize2 } from 'lucide-react';
