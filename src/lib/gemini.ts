@@ -28,7 +28,7 @@ export class VIPBookingAssistant {
   private extractedData: BookingData = {};
 
   constructor() {
-    this.model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+ this.model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
   }
 
   private getSystemPrompt(): string {
