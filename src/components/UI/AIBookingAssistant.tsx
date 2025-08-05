@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Minimize2, Maximize2 } from 'lucide-react';
 import { VIPBookingAssistant, ChatMessage, BookingData } from '../../lib/gemini';
-import { supabase } from '../../lib/supabase';
+import { supabase, ChatConversation } from '../../lib/supabase';
 
 interface AIBookingAssistantProps {
   isVisible?: boolean;
@@ -14,6 +14,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -31,7 +32,6 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      // Send welcome message
       const welcomeMessage: ChatMessage = {
         role: 'assistant',
         content: "Hello! I'm your VIP Transport booking assistant. I'm here to help you arrange luxury chauffeur services. How can I assist you today?",
@@ -57,6 +57,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
+    setError(null);
 
     try {
       const result = await assistantRef.current.processMessage(inputMessage);
@@ -74,11 +75,11 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
 
       // If booking is ready, submit it
       if (result.bookingReady) {
-        await submitBooking(result.extractedData);
+        const booking = await submitBooking(result.extractedData);
         
         const confirmationMessage: ChatMessage = {
           role: 'assistant',
-          content: "Perfect! I've submitted your booking request to our team. You'll receive a confirmation once it's been reviewed and approved. Is there anything else I can help you with?",
+          content: `Perfect! Your booking #${booking?.id.slice(0, 8)} has been submitted. You'll receive a confirmation soon. Need anything else?`,
           timestamp: new Date()
         };
         
@@ -86,9 +87,10 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
       }
     } catch (error) {
       console.error('Error processing message:', error);
+      setError("I'm having trouble connecting. Please try again or call us directly.");
       const errorMessage: ChatMessage = {
         role: 'assistant',
-        content: "I apologize, but I'm experiencing technical difficulties. Please try again or contact us directly at 07464 247 007.",
+        content: "I'm experiencing technical difficulties. Please try again or contact us directly at 07464 247 007.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -99,42 +101,73 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
 
   const saveConversation = async (conversationMessages: ChatMessage[]) => {
     try {
+      const formattedMessages = conversationMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
       const { error } = await supabase
-        .from('inquiries')
+        .from('chat_conversations')
         .upsert({
           session_id: sessionId,
-          messages: conversationMessages,
-          updated_at: new Date().toISOString()
+          messages: formattedMessages,
+          updated_at: new Date().toISOString(),
+          status: 'active'
+        }, {
+          onConflict: 'session_id'
         });
 
       if (error) throw error;
     } catch (error) {
       console.error('Error saving conversation:', error);
+      throw error;
     }
   };
 
   const submitBooking = async (bookingData: BookingData) => {
     try {
+      // First ensure the conversation exists
+      await saveConversation(messages);
+
+      const formattedBooking = {
+        conversation_id: sessionId,
+        customer_name: bookingData.name || '',
+        customer_email: bookingData.email || '',
+        customer_phone: bookingData.phone || '',
+        pickup_location: bookingData.pickup || '',
+        dropoff_location: bookingData.dropoff || '',
+        booking_date: bookingData.date || null,
+        booking_time: bookingData.time || null,
+        service_type: bookingData.serviceType || '',
+        vehicle_preference: bookingData.vehicle || '',
+        passenger_count: bookingData.passengers ? parseInt(bookingData.passengers) : null,
+        special_requirements: bookingData.requirements || '',
+        extracted_data: bookingData,
+        status: 'pending'
+      };
+
       const { data, error } = await supabase
         .from('ai_bookings')
-        .insert([{
-          conversation_id: sessionId,
-          ...bookingData,
-          extracted_data: bookingData,
-          status: 'pending'
-        }]);
+        .insert([formattedBooking])
+        .select();
 
       if (error) throw error;
 
       // Update conversation with booking ID
       if (data && data[0]) {
         await supabase
-          .from('inquiries')
-          .update({ booking_id: data[0].id })
+          .from('chat_conversations')
+          .update({ 
+            booking_id: data[0].id,
+            updated_at: new Date().toISOString()
+          })
           .eq('session_id', sessionId);
       }
+
+      return data?.[0];
     } catch (error) {
       console.error('Error submitting booking:', error);
+      throw error;
     }
   };
 
@@ -214,6 +247,11 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
             {/* Chat Messages */}
             {!isMinimized && (
               <>
+                {error && (
+                  <div className="bg-red-100 text-red-800 p-2 rounded text-sm mx-4 mt-2">
+                    {error}
+                  </div>
+                )}
                 <div className="h-80 overflow-y-auto p-4 space-y-4">
                   {messages.map((message, index) => (
                     <motion.div
