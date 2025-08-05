@@ -77,25 +77,21 @@ export type CompanyLogo = {
   created_at?: string;
 };
 
+
 export type AIBooking = {
   id: string;
   conversation_id: string;
   customer_name?: string;
-  customer_email?: string;
-  customer_phone?: string;
   pickup_location?: string;
   dropoff_location?: string;
   booking_date?: string;
   booking_time?: string;
-  service_type?: string;
-  vehicle_preference?: string;
-  passenger_count?: number;
-  special_requirements?: string;
+  number_of_passengers?: number;
+  vehicle_type?: string;
+  notes?: string;
   extracted_data: any;
   status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
-  admin_notes?: string;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
 };
 
 export type ChatConversation = {
@@ -104,6 +100,6 @@ export type ChatConversation = {
   messages: any[];
   booking_id?: string;
   status: string;
-  created_at?: string;
-  updated_at?: string;
+  updated_at: string;
 };
+
