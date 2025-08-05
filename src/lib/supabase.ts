@@ -1,10 +1,10 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
-
 export type Service = {
   id: string;
   title: string;
@@ -77,29 +77,33 @@ export type CompanyLogo = {
   created_at?: string;
 };
 
-
 export type AIBooking = {
   id: string;
   conversation_id: string;
   customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
   pickup_location?: string;
   dropoff_location?: string;
   booking_date?: string;
   booking_time?: string;
-  number_of_passengers?: number;
-  vehicle_type?: string;
-  notes?: string;
+  service_type?: string;
+  vehicle_preference?: string;
+  passenger_count?: number;
+  special_requirements?: string;
   extracted_data: any;
   status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
+  admin_notes?: string;
   created_at: string;
+  updated_at: string;
 };
 
 export type ChatConversation = {
   id: string;
   session_id: string;
-  messages: any[];
+  messages: { role: string; content: string }[];
   booking_id?: string;
-  status: string;
-  updated_at: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
 };
-
