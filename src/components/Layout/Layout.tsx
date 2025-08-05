@@ -5,6 +5,7 @@ import Footer from './Footer';
 import FixedCallButton from '../UI/FixedCallButton';
 import WhatsAppButton from '../UI/WhatsAppButton';
 import ScrollToTopButton from '../UI/ScrollToTopButton';
+import AIBookingAssistant from '../UI/AIBookingAssistant';
 
 const Layout = () => {
   return (
@@ -17,6 +18,7 @@ const Layout = () => {
       <Footer />
       <WhatsAppButton />
       <ScrollToTopButton />
+      <AIBookingAssistant />
     </div>
   );
 };

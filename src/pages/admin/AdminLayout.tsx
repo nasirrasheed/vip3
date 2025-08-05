@@ -9,6 +9,7 @@ import {
   Image,
   Mail,
   Building,
+  Bot,
   LogOut,
   Menu,
   X
@@ -30,6 +31,7 @@ const AdminLayout = () => {
     { name: 'Gallery', href: '/admin/gallery', icon: Image },
     { name: 'Company Logos', href: '/admin/company-logos', icon: Building },
     { name: 'Inquiries', href: '/admin/inquiries', icon: Mail },
+    { name: 'AI Bookings', href: '/admin/ai-bookings', icon: Bot },
   ];
 
   const isActive = (path: string) => location.pathname === path;

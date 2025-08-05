@@ -76,3 +76,34 @@ export type CompanyLogo = {
   is_active: boolean;
   created_at: string;
 };
+
+export type AIBooking = {
+  id: string;
+  conversation_id: string;
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
+  pickup_location?: string;
+  dropoff_location?: string;
+  booking_date?: string;
+  booking_time?: string;
+  service_type?: string;
+  vehicle_preference?: string;
+  passenger_count?: number;
+  special_requirements?: string;
+  extracted_data: any;
+  status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ChatConversation = {
+  id: string;
+  session_id: string;
+  messages: any[];
+  booking_id?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
