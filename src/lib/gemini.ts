@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { supabase } from './supabase';
+import { supabase, AIBooking } from './supabase';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
@@ -117,16 +117,29 @@ Please respond to the latest user message professionally and helpfully. If you h
   }
 
   private async saveBookingToSupabase() {
-    const { error } = await supabase.from('ai_bookings').insert({
-      ...this.extractedData,
-      session_id: this.sessionId,
+    const newBooking: Partial<AIBooking> = {
+      conversation_id: this.sessionId,
+      customer_name: this.extractedData.customer_name,
+      customer_email: this.extractedData.customer_email,
+      customer_phone: this.extractedData.customer_phone,
+      pickup_location: this.extractedData.pickup_location,
+      dropoff_location: this.extractedData.dropoff_location,
+      booking_date: this.extractedData.booking_date,
+      booking_time: this.extractedData.booking_time,
+      service_type: this.extractedData.service_type,
+      vehicle_preference: this.extractedData.vehicle_preference,
+      passenger_count: this.extractedData.passenger_count,
+      special_requirements: this.extractedData.special_requirements,
+      extracted_data: this.extractedData,
       status: 'pending',
-    });
+    };
+
+    const { error } = await supabase.from('ai_bookings').insert(newBooking);
 
     if (error) {
-      console.error('Error saving booking to Supabase:', error);
+      console.error('❌ Error inserting booking into Supabase:', error);
     } else {
-      console.log('Booking saved to Supabase.');
+      console.log('✅ Booking successfully saved to Supabase.');
     }
   }
 
@@ -154,7 +167,7 @@ Please respond to the latest user message professionally and helpfully. If you h
 
     const datePatterns = [
       /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/,
-      /(\d{1,2})\s+(january|february|...)/i,
+      /(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)/i,
       /(tomorrow|today|next week|next month)/i,
     ];
     for (const pattern of datePatterns) {
