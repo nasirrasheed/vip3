@@ -100,7 +100,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
   const saveConversation = async (conversationMessages: ChatMessage[]) => {
     try {
       const { error } = await supabase
-        .from('chat_conversations')
+        .from('inquiries')
         .upsert({
           session_id: sessionId,
           messages: conversationMessages,
@@ -129,7 +129,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ isVisible = tru
       // Update conversation with booking ID
       if (data && data[0]) {
         await supabase
-          .from('chat_conversations')
+          .from('inquiries')
           .update({ booking_id: data[0].id })
           .eq('session_id', sessionId);
       }
