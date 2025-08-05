@@ -4,6 +4,8 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Type definitions
 export type Service = {
   id: string; 
   title: string;
@@ -76,8 +78,6 @@ export type CompanyLogo = {
   created_at?: string;
 };
 
-
-
 export type AIBooking = {
   id: string;
   conversation_id: string;
@@ -107,4 +107,36 @@ export type ChatConversation = {
   status?: string;
   created_at: string;
   updated_at: string;
+};
+
+// Helper functions
+export const createAIBooking = async (bookingData: Omit<AIBooking, 'id' | 'created_at' | 'updated_at'>) => {
+  const { data, error } = await supabase
+    .from('ai_bookings')
+    .insert([bookingData])
+    .select();
+  
+  if (error) throw error;
+  return data?.[0];
+};
+
+export const createChatConversation = async (conversationData: Omit<ChatConversation, 'id' | 'created_at' | 'updated_at'>) => {
+  const { data, error } = await supabase
+    .from('chat_conversations')
+    .insert([conversationData])
+    .select();
+  
+  if (error) throw error;
+  return data?.[0];
+};
+
+export const updateChatConversation = async (sessionId: string, updates: Partial<ChatConversation>) => {
+  const { data, error } = await supabase
+    .from('chat_conversations')
+    .update(updates)
+    .eq('session_id', sessionId)
+    .select();
+  
+  if (error) throw error;
+  return data?.[0];
 };
