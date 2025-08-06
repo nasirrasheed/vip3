@@ -20,8 +20,8 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-  const [currentStep, setCurrentStep] = useState<'greeting' | 'name' | 'contact' | 'pickup' | 'destination' | 'datetime' | 'vehicle' | 'details' | 'confirm' | 'complete'>('greeting');
   const [collectedData, setCollectedData] = useState<Partial<BookingData>>({});
+  const [conversationContext, setConversationContext] = useState<string[]>([]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const assistantRef = useRef<VIPBookingAssistant | null>(null);
@@ -44,11 +44,11 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
     if (isOpen && messages.length === 0) {
       const welcomeMessage: ChatMessage = {
         role: 'assistant',
-        content: "Hello there! 👋 I'm Alex from VIP Transport Services. It's a pleasure to assist you with your luxury chauffeur needs today. Could I start by getting your name, please?",
+        content: "Good day! I'm Alex, your VIP transport specialist. How may I assist you with your luxury travel needs today?",
         timestamp: new Date()
       };
       setMessages([welcomeMessage]);
-      setCurrentStep('name');
+      setConversationContext(['greeting']);
     }
   }, [isOpen, messages.length]);
 
@@ -58,6 +58,12 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading || !assistantRef.current) return;
+
+    // Skip processing if user just said "what" or similar
+    if (inputMessage.toLowerCase().match(/^(what|lol|haha|hi|hello)$/i)) {
+      setInputMessage('');
+      return;
+    }
 
     console.log('Sending message:', inputMessage);
 
@@ -73,166 +79,55 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
     setError(null);
 
     try {
-      // Store the user's response based on current step
-      const updatedData = { ...collectedData };
+      // Analyze the conversation context to determine response
+      const context = [...conversationContext];
+      const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop()?.content || '';
       
-      switch(currentStep) {
-        case 'name':
-          updatedData.customer_name = inputMessage;
-          break;
-        case 'contact':
-          if (inputMessage.includes('@')) {
-            updatedData.customer_email = inputMessage;
-          } else {
-            updatedData.customer_phone = inputMessage.replace(/[^\d+]/g, '');
-          }
-          break;
-        case 'pickup':
-          updatedData.pickup_location = inputMessage;
-          break;
-        case 'destination':
-          updatedData.dropoff_location = inputMessage;
-          break;
-        case 'datetime':
-          // Simple date/time parsing - would be enhanced in production
-          if (inputMessage.match(/\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}/)) {
-            updatedData.booking_date = inputMessage;
-          } else if (inputMessage.match(/\d{1,2}:\d{2}/)) {
-            updatedData.booking_time = inputMessage;
-          }
-          break;
-        case 'vehicle':
-          updatedData.vehicle_preference = inputMessage;
-          break;
-        case 'details':
-          updatedData.special_requirements = inputMessage;
-          break;
-      }
+      // Process the message through the AI assistant with full context
+      const result = await assistantRef.current.processMessage(
+        inputMessage, 
+        lastAssistantMessage, 
+        collectedData,
+        context
+      );
       
-      setCollectedData(updatedData);
-      console.log('Updated collected data:', updatedData);
+      console.log('AI processing result:', result);
 
-      // Determine next step and response
-      let nextStep = currentStep;
-      let assistantResponse = "";
-      let shouldProcess = false;
-
-      switch(currentStep) {
-        case 'name':
-          assistantResponse = `Thank you, ${inputMessage}. How may we contact you? A phone number or email would be perfect.`;
-          nextStep = 'contact';
-          break;
-          
-        case 'contact':
-          if (inputMessage.includes('@') && !updatedData.customer_phone) {
-            assistantResponse = "Got your email. For faster coordination, could we also have a contact number? Otherwise, we'll proceed with email.";
-          } else {
-            assistantResponse = "Wonderful. Now, where will we be picking you up from today? Please include any specific details like building name or landmark.";
-            nextStep = 'pickup';
-          }
-          break;
-          
-        case 'pickup':
-          assistantResponse = "Noted. And what's your destination address? We'll ensure the most efficient route for you.";
-          nextStep = 'destination';
-          break;
-          
-        case 'destination':
-          assistantResponse = "Excellent. When would you like this service? You can say something like 'Tomorrow at 3 PM' or 'August 15th at 8:30 AM'.";
-          nextStep = 'datetime';
-          break;
-          
-        case 'datetime':
-          // Check if we have both date and time
-          if (!updatedData.booking_date || !updatedData.booking_time) {
-            assistantResponse = "Just to confirm, did you mean " + 
-              (updatedData.booking_date ? updatedData.booking_date : "[date]") + 
-              " at " + 
-              (updatedData.booking_time ? updatedData.booking_time : "[time]") + 
-              "? Or could you clarify the date and time?";
-          } else {
-            assistantResponse = `Got it - ${updatedData.booking_date} at ${updatedData.booking_time}. `;
-            assistantResponse += "We offer a range of luxury vehicles - sedans (Mercedes S-Class, BMW 7 Series), SUVs (Range Rover, Mercedes GLS), or executive vans. Do you have a preference?";
-            nextStep = 'vehicle';
-          }
-          break;
-          
-        case 'vehicle':
-          assistantResponse = "Excellent choice. Is there anything special we should prepare for your journey? Child seats, wheelchair access, or perhaps champagne on arrival?";
-          nextStep = 'details';
-          break;
-          
-        case 'details':
-          assistantResponse = "Thank you for those details. Let me summarize your booking:\n\n" +
-            `• Name: ${updatedData.customer_name}\n` +
-            `• Contact: ${updatedData.customer_phone || updatedData.customer_email}\n` +
-            `• Pickup: ${updatedData.pickup_location}\n` +
-            `• Destination: ${updatedData.dropoff_location}\n` +
-            `• Date/Time: ${updatedData.booking_date} at ${updatedData.booking_time}\n` +
-            `• Vehicle: ${updatedData.vehicle_preference}\n` +
-            `• Special Requests: ${updatedData.special_requirements || 'None'}\n\n` +
-            "Does everything look correct? We can proceed or make any adjustments needed.";
-          nextStep = 'confirm';
-          break;
-          
-        case 'confirm':
-          if (inputMessage.toLowerCase().includes('yes') || 
-              inputMessage.toLowerCase().includes('correct') ||
-              inputMessage.toLowerCase().includes('proceed')) {
-            assistantResponse = "Perfect! I'll finalize your booking now. One moment please...";
-            nextStep = 'complete';
-            shouldProcess = true;
-          } else {
-            assistantResponse = "I'd be happy to adjust anything. What would you like to change?";
-            // Here you would add logic to handle changes
-          }
-          break;
+      // Update collected data if any was extracted
+      if (result.extractedData) {
+        setCollectedData(prev => ({ ...prev, ...result.extractedData }));
       }
-      
-      if (!shouldProcess) {
-        const assistantMessage: ChatMessage = {
-          role: 'assistant',
-          content: assistantResponse,
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, assistantMessage]);
-        setCurrentStep(nextStep);
-        await saveConversation([...messages, userMessage, assistantMessage]);
-      } else {
-        // Process the booking
-        const assistantMessage: ChatMessage = {
-          role: 'assistant',
-          content: assistantResponse,
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, assistantMessage]);
-        
-        const completeData = {
-          ...updatedData,
-          purpose: "Booking through chat assistant",
-          additional_services: "Standard VIP service" + 
-            (updatedData.special_requirements ? " with special requests" : "")
-        } as BookingData;
-        
-        console.log('Processing booking with data:', completeData);
-        const result = await assistantRef.current.processBooking(completeData);
-        console.log('Booking processing result:', result);
-        
-        const resultMessage: ChatMessage = {
-          role: 'assistant',
-          content: result.response || `Your booking #${Math.random().toString(36).substr(2, 8).toUpperCase()} has been confirmed! You'll receive details shortly. Is there anything else I can assist with?`,
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, resultMessage]);
-        await saveConversation([...messages, userMessage, assistantMessage, resultMessage]);
-        
-        // Submit booking to database
+
+      // Update conversation context
+      if (result.context) {
+        setConversationContext(result.context);
+      }
+
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: result.response,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+      // Save conversation to database
+      await saveConversation([...messages, userMessage, assistantMessage]);
+
+      // If booking is ready, submit it
+      if (result.bookingReady && result.extractedData) {
         try {
-          const booking = await submitBooking(completeData);
+          console.log('Booking is ready, submitting...');
+          const booking = await submitBooking(result.extractedData);
           console.log('Booking submitted successfully:', booking);
+          
+          const confirmationMessage: ChatMessage = {
+            role: 'assistant',
+            content: `Your booking #${booking?.id.slice(0, 8)} has been confirmed. You'll receive a confirmation shortly. Is there anything else I can assist you with?`,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, confirmationMessage]);
         } catch (bookingError) {
           console.error('Booking submission error:', bookingError);
           setError('Failed to submit booking. Please try again.');
@@ -249,7 +144,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
       setError('Connection error. Please check your internet connection.');
       const errorMessage: ChatMessage = {
         role: 'assistant',
-        content: "Apologies, I'm having some technical difficulties. Please bear with me or contact us directly at 07464 247 007 for immediate assistance.",
+        content: "Apologies, I'm experiencing some technical difficulties. Please bear with me or contact us directly at 07464 247 007.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -272,8 +167,9 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
           session_id: sessionId,
           messages: formattedMessages,
           collected_data: collectedData,
+          context: conversationContext,
           updated_at: new Date().toISOString(),
-          status: currentStep === 'complete' ? 'completed' : 'active'
+          status: conversationContext.includes('booking_complete') ? 'completed' : 'active'
         }, {
           onConflict: 'session_id'
         })
