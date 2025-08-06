@@ -210,48 +210,49 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
   };
 
  const submitBooking = async (bookingData: BookingData) => {
-  const formattedBooking = {
-    conversation_id: sessionId,
-    customer_name: bookingData.customer_name,
-    customer_email: bookingData.customer_email,
-    customer_phone: bookingData.customer_phone,
-    pickup_location: bookingData.pickup_location,
-    dropoff_location: bookingData.dropoff_location,
-    booking_date: bookingData.booking_date,
-    booking_time: bookingData.booking_time,
-    service_type: bookingData.purpose || 'Event Transport', // Map to existing column
-    vehicle_preference: bookingData.vehicle_preference,
-    passenger_count: bookingData.passenger_count || 1,
-    special_requirements: bookingData.special_requirements || '',
-    extracted_data: bookingData, // Stores ALL original data as JSON
-    status: 'pending'
-  };
+  try {
+    const formattedBooking = {
+      conversation_id: sessionId,
+      customer_name: bookingData.customer_name,
+      customer_email: bookingData.customer_email,
+      customer_phone: bookingData.customer_phone,
+      pickup_location: bookingData.pickup_location,
+      dropoff_location: bookingData.dropoff_location,
+      booking_date: bookingData.booking_date,
+      booking_time: bookingData.booking_time,
+      service_type: bookingData.purpose || 'Event Transport',
+      vehicle_preference: bookingData.vehicle_preference,
+      passenger_count: bookingData.passenger_count || 1,
+      special_requirements: bookingData.special_requirements || '',
+      extracted_data: bookingData,
+      status: 'pending'
+    };
 
-  const { data, error } = await supabase
-    .from('ai_bookings') // Use correct table name
-    .insert([formattedBooking])
-    .select();
+    const { data, error } = await supabase
+      .from('ai_bookings')
+      .insert([formattedBooking])
+      .select();
 
-      if (error) throw error;
+    if (error) throw error;
 
-      // Update conversation with booking ID
-      if (data && data[0]) {
-        await supabase
-          .from('vip_chat_conversations')
-          .update({ 
-            booking_id: data[0].id,
-            updated_at: new Date().toISOString(),
-            status: 'completed'
-          })
-          .eq('session_id', sessionId);
-      }
-
-      return data?.[0];
-    } catch (error) {
-      console.error('Error submitting VIP booking:', error);
-      throw error;
+    // Update conversation with booking ID
+    if (data && data[0]) {
+      await supabase
+        .from('chat_conversations')
+        .update({ 
+          booking_id: data[0].id,
+          updated_at: new Date().toISOString(),
+          status: 'completed'
+        })
+        .eq('session_id', sessionId);
     }
-  };
+
+    return data?.[0];
+  } catch (error) {
+    console.error('Error submitting VIP booking:', error);
+    throw error;
+  }
+};
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
