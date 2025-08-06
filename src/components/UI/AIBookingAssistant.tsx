@@ -19,10 +19,9 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [sessionId] = useState(() => session_${Date.now()}_${Math.random().toString(36).substr(2, 9)});
   const [collectedData, setCollectedData] = useState<Partial<BookingData>>({});
   const [conversationContext, setConversationContext] = useState<string[]>([]);
-  const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const assistantRef = useRef<VIPBookingAssistant | null>(null);
@@ -57,51 +56,81 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Update the handleSendMessage function in your AIBookingAssistant component
-const handleSendMessage = async () => {
-  if (!inputMessage.trim() || isLoading || !assistantRef.current) return;
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading || !assistantRef.current) return;
 
-  const userMessage: ChatMessage = {
-    role: 'user',
-    content: inputMessage,
-    timestamp: new Date()
-  };
-
-  setMessages(prev => [...prev, userMessage]);
-  setInputMessage('');
-  setIsLoading(true);
-  setError(null);
-
-  try {
-    const result = await assistantRef.current.processMessage(
-      inputMessage, 
-      messages.filter(m => m.role === 'assistant').pop()?.content || '',
-      collectedData,
-      conversationContext
-    );
-
-    // Update collected data
-    if (result.extractedData) {
-      setCollectedData(prev => ({ ...prev, ...result.extractedData }));
+    // Skip processing if user just said "what" or similar
+    if (inputMessage.toLowerCase().match(/^(what|lol|haha|hi|hello)$/i)) {
+      setInputMessage('');
+      return;
     }
 
-    // Add assistant response
-    const assistantMessage: ChatMessage = {
-      role: 'assistant',
-      content: result.response,
+    console.log('Sending message:', inputMessage);
+
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: inputMessage,
       timestamp: new Date()
     };
-    setMessages(prev => [...prev, assistantMessage]);
 
-    // Save conversation
-    await saveConversation([...messages, userMessage, assistantMessage]);
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setIsLoading(true);
+    setError(null);
 
-    // Handle booking submission
-    if (result.bookingReady && result.extractedData) {
-      try {
-        const booking = await submitBooking(result.extractedData);
-        if (booking) {
-          // Always show error message even if booking succeeds
+    try {
+      // Analyze the conversation context to determine response
+      const context = [...conversationContext];
+      const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop()?.content || '';
+      
+      // Process the message through the AI assistant with full context
+      const result = await assistantRef.current.processMessage(
+        inputMessage, 
+        lastAssistantMessage, 
+        collectedData,
+        context
+      );
+      
+      console.log('AI processing result:', result);
+
+      // Update collected data if any was extracted
+      if (result.extractedData) {
+        setCollectedData(prev => ({ ...prev, ...result.extractedData }));
+      }
+
+      // Update conversation context
+      if (result.context) {
+        setConversationContext(result.context);
+      }
+
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: result.response,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+      // Save conversation to database
+      await saveConversation([...messages, userMessage, assistantMessage]);
+
+      // If booking is ready, submit it
+      if (result.bookingReady && result.extractedData) {
+        try {
+          console.log('Booking is ready, submitting...');
+          const booking = await submitBooking(result.extractedData);
+          console.log('Booking submitted successfully:', booking);
+          
+          const confirmationMessage: ChatMessage = {
+            role: 'assistant',
+            content: Your booking #${booking?.id.slice(0, 8)} has been confirmed. You'll receive a confirmation shortly. Is there anything else I can assist you with?,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, confirmationMessage]);
+        } catch (bookingError) {
+          console.error('Booking submission error:', bookingError);
+          setError('Failed to submit booking. Please try again.');
           const errorMessage: ChatMessage = {
             role: 'assistant',
             content: "I encountered an issue processing your booking. Please contact us directly at 07464 247 007 for immediate assistance.",
@@ -109,57 +138,21 @@ const handleSendMessage = async () => {
           };
           setMessages(prev => [...prev, errorMessage]);
         }
-      } catch (error) {
-        console.error('Booking submission error:', error);
-        const errorMessage: ChatMessage = {
-          role: 'assistant',
-          content: "I encountered an issue processing your booking. Please contact us directly at 07464 247 007 for immediate assistance.",
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, errorMessage]);
       }
+    } catch (error) {
+      console.error('Error processing message:', error);
+      setError('Connection error. Please check your internet connection.');
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: "Apologies, I'm experiencing some technical difficulties. Please bear with me or contact us directly at 07464 247 007.",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Error:', error);
-    setError('Connection error. Please check your internet connection.');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
-// Update submitBooking function to always create new booking
-const submitBooking = async (bookingData: BookingData) => {
-  try {
-    const formattedBooking = {
-      conversation_id: sessionId,
-      customer_name: bookingData.customer_name,
-      customer_email: bookingData.customer_email,
-      customer_phone: bookingData.customer_phone,
-      pickup_location: bookingData.pickup_location,
-      dropoff_location: bookingData.dropoff_location,
-      booking_date: bookingData.booking_date,
-      booking_time: bookingData.booking_time,
-      vehicle_preference: bookingData.vehicle_preference || 'Not specified', // Ensure vehicle is shown
-      passenger_count: bookingData.passenger_count || 1,
-      special_requirements: bookingData.special_requirements,
-      journey_purpose: bookingData.purpose,
-      additional_services: bookingData.additional_services,
-      status: 'pending',
-      extracted_data: bookingData
-    };
-
-    const { data, error } = await supabase
-      .from('ai_bookings')
-      .insert([formattedBooking])
-      .select();
-
-    if (error) throw error;
-    return data?.[0];
-  } catch (error) {
-    console.error('Error submitting booking:', error);
-    throw error;
-  }
-};
   const saveConversation = async (conversationMessages: ChatMessage[]) => {
     try {
       const formattedMessages = conversationMessages.map(msg => ({
@@ -176,8 +169,7 @@ const submitBooking = async (bookingData: BookingData) => {
           collected_data: collectedData,
           context: conversationContext,
           updated_at: new Date().toISOString(),
-          status: conversationContext.includes('booking_complete') ? 'completed' : 'active',
-          booking_id: currentBookingId || undefined
+          status: conversationContext.includes('booking_complete') ? 'completed' : 'active'
         }, {
           onConflict: 'session_id'
         })
@@ -192,13 +184,6 @@ const submitBooking = async (bookingData: BookingData) => {
 
   const submitBooking = async (bookingData: BookingData) => {
     try {
-      // Validate we have all required fields
-      if (!bookingData.customer_name || !bookingData.customer_phone || 
-          !bookingData.pickup_location || !bookingData.dropoff_location ||
-          !bookingData.booking_date || !bookingData.booking_time) {
-        throw new Error('Missing required booking information');
-      }
-
       const formattedBooking = {
         conversation_id: sessionId,
         customer_name: bookingData.customer_name,
@@ -265,7 +250,7 @@ const submitBooking = async (bookingData: BookingData) => {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
-            className={`fixed bottom-6 ${positionClasses[position]} z-50 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110`}
+            className={fixed bottom-6 ${positionClasses[position]} z-50 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             aria-label="Open chat assistant"
@@ -289,7 +274,7 @@ const submitBooking = async (bookingData: BookingData) => {
               height: isMinimized ? 60 : 500
             }}
             exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            className={`fixed bottom-6 ${positionClasses[position]} z-50 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden`}
+            className={fixed bottom-6 ${positionClasses[position]} z-50 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden}
             style={{ width: '380px' }}
           >
             <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black p-4 flex items-center justify-between">
@@ -333,7 +318,7 @@ const submitBooking = async (bookingData: BookingData) => {
                       key={index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className={flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}}
                     >
                       <div
                         className={`max-w-xs px-4 py-2 rounded-lg ${
