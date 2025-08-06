@@ -19,7 +19,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sessionId] = useState(() => session_${Date.now()}_${Math.random().toString(36).substr(2, 9)});
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [collectedData, setCollectedData] = useState<Partial<BookingData>>({});
   const [conversationContext, setConversationContext] = useState<string[]>([]);
   
@@ -123,7 +123,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
           
           const confirmationMessage: ChatMessage = {
             role: 'assistant',
-            content: Your booking #${booking?.id.slice(0, 8)} has been confirmed. You'll receive a confirmation shortly. Is there anything else I can assist you with?,
+            content: `Your booking #${booking?.id.slice(0, 8)} has been confirmed. You'll receive a confirmation shortly. Is there anything else I can assist you with?`,
             timestamp: new Date()
           };
           
@@ -250,7 +250,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
-            className={fixed bottom-6 ${positionClasses[position]} z-50 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110}
+            className={`fixed bottom-6 ${positionClasses[position]} z-50 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110`}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             aria-label="Open chat assistant"
@@ -274,7 +274,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
               height: isMinimized ? 60 : 500
             }}
             exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            className={fixed bottom-6 ${positionClasses[position]} z-50 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden}
+            className={`fixed bottom-6 ${positionClasses[position]} z-50 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden`}
             style={{ width: '380px' }}
           >
             <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black p-4 flex items-center justify-between">
@@ -318,7 +318,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
                       key={index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
                         className={`max-w-xs px-4 py-2 rounded-lg ${
