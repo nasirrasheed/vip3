@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Minimize2, Maximize2 } from 'lucide-react';
 import { VIPBookingAssistant, ChatMessage, BookingData } from '../../lib/gemini';
-import { supabase, ChatConversation } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 interface AIBookingAssistantProps {
   isVisible?: boolean;
@@ -27,9 +27,9 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
   // Initialize the assistant
   useEffect(() => {
     if (!assistantRef.current) {
-      assistantRef.current = new VIPBookingAssistant();
+      assistantRef.current = new VIPBookingAssistant(sessionId);
     }
-  }, []);
+  }, [sessionId]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -118,12 +118,13 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
 
   const saveConversation = async (conversationMessages: ChatMessage[]) => {
     try {
+      console.log('Saving conversation for session:', sessionId);
       const formattedMessages = conversationMessages.map(msg => ({
         role: msg.role,
         content: msg.content
       }));
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('chat_conversations')
         .upsert({
           session_id: sessionId,
@@ -132,9 +133,15 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
           status: 'active'
         }, {
           onConflict: 'session_id'
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving conversation:', error);
+        throw error;
+      }
+      
+      console.log('Conversation saved successfully:', data);
     } catch (error) {
       console.error('Error saving conversation:', error);
       // Don't show this error to the user as it's a background process
@@ -143,32 +150,41 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
 
   const submitBooking = async (bookingData: BookingData) => {
     try {
+      console.log('Submitting booking with data:', bookingData);
+      
       // First ensure the conversation exists
       await saveConversation(messages);
 
       const formattedBooking = {
         conversation_id: sessionId,
-        customer_name: bookingData.name || '',
-        customer_email: bookingData.email || '',
-        customer_phone: bookingData.phone || '',
-        pickup_location: bookingData.pickup || '',
-        dropoff_location: bookingData.dropoff || '',
-        booking_date: bookingData.date || null,
-        booking_time: bookingData.time || null,
-        service_type: bookingData.serviceType || '',
-        vehicle_preference: bookingData.vehicle || '',
-        passenger_count: bookingData.passengers ? parseInt(bookingData.passengers) : null,
-        special_requirements: bookingData.requirements || '',
+        customer_name: bookingData.name || bookingData.customer_name || '',
+        customer_email: bookingData.email || bookingData.customer_email || '',
+        customer_phone: bookingData.phone || bookingData.customer_phone || '',
+        pickup_location: bookingData.pickup || bookingData.pickup_location || '',
+        dropoff_location: bookingData.dropoff || bookingData.dropoff_location || '',
+        booking_date: bookingData.date || bookingData.booking_date || null,
+        booking_time: bookingData.time || bookingData.booking_time || null,
+        service_type: bookingData.serviceType || bookingData.service_type || '',
+        vehicle_preference: bookingData.vehicle || bookingData.vehicle_preference || '',
+        passenger_count: bookingData.passengers ? parseInt(bookingData.passengers.toString()) : (bookingData.passenger_count || null),
+        special_requirements: bookingData.requirements || bookingData.special_requirements || '',
         extracted_data: bookingData,
         status: 'pending'
       };
+
+      console.log('Formatted booking data:', formattedBooking);
 
       const { data, error } = await supabase
         .from('ai_bookings')
         .insert([formattedBooking])
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase booking error:', error);
+        throw error;
+      }
+
+      console.log('Booking created successfully:', data);
 
       // Update conversation with booking ID
       if (data && data[0]) {
