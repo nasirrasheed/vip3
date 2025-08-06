@@ -209,32 +209,28 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
     }
   };
 
-  const submitBooking = async (bookingData: BookingData) => {
-    try {
-      const formattedBooking = {
-        conversation_id: sessionId,
-        customer_name: bookingData.customer_name,
-        customer_email: bookingData.customer_email,
-        customer_phone: bookingData.customer_phone,
-        pickup_location: bookingData.pickup_location,
-        dropoff_location: bookingData.dropoff_location,
-        booking_date: bookingData.booking_date,
-        booking_time: bookingData.booking_time,
-        vehicle_preference: bookingData.vehicle_preference || 'Premium Sedan',
-        passenger_count: bookingData.passenger_count || 1,
-        special_requirements: bookingData.special_requirements,
-        journey_purpose: bookingData.purpose || 'Personal',
-        additional_services: bookingData.additional_services,
-        status: 'confirmed',
-        extracted_data: bookingData,
-        is_vip: true,
-        priority_level: 'high'
-      };
+ const submitBooking = async (bookingData: BookingData) => {
+  const formattedBooking = {
+    conversation_id: sessionId,
+    customer_name: bookingData.customer_name,
+    customer_email: bookingData.customer_email,
+    customer_phone: bookingData.customer_phone,
+    pickup_location: bookingData.pickup_location,
+    dropoff_location: bookingData.dropoff_location,
+    booking_date: bookingData.booking_date,
+    booking_time: bookingData.booking_time,
+    service_type: bookingData.purpose || 'Event Transport', // Map to existing column
+    vehicle_preference: bookingData.vehicle_preference,
+    passenger_count: bookingData.passenger_count || 1,
+    special_requirements: bookingData.special_requirements || '',
+    extracted_data: bookingData, // Stores ALL original data as JSON
+    status: 'pending'
+  };
 
-      const { data, error } = await supabase
-        .from('vip_bookings')
-        .insert([formattedBooking])
-        .select();
+  const { data, error } = await supabase
+    .from('ai_bookings') // Use correct table name
+    .insert([formattedBooking])
+    .select();
 
       if (error) throw error;
 
