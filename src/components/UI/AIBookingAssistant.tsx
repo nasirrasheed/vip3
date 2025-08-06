@@ -57,91 +57,51 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading || !assistantRef.current) return;
+  // Update the handleSendMessage function in your AIBookingAssistant component
+const handleSendMessage = async () => {
+  if (!inputMessage.trim() || isLoading || !assistantRef.current) return;
 
-    // Skip processing if user just said "what" or similar
-    if (inputMessage.toLowerCase().match(/^(what|lol|haha)$/i)) {
-      setInputMessage('');
-      return;
+  const userMessage: ChatMessage = {
+    role: 'user',
+    content: inputMessage,
+    timestamp: new Date()
+  };
+
+  setMessages(prev => [...prev, userMessage]);
+  setInputMessage('');
+  setIsLoading(true);
+  setError(null);
+
+  try {
+    const result = await assistantRef.current.processMessage(
+      inputMessage, 
+      messages.filter(m => m.role === 'assistant').pop()?.content || '',
+      collectedData,
+      conversationContext
+    );
+
+    // Update collected data
+    if (result.extractedData) {
+      setCollectedData(prev => ({ ...prev, ...result.extractedData }));
     }
 
-    console.log('Sending message:', inputMessage);
-
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: inputMessage,
+    // Add assistant response
+    const assistantMessage: ChatMessage = {
+      role: 'assistant',
+      content: result.response,
       timestamp: new Date()
     };
+    setMessages(prev => [...prev, assistantMessage]);
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
-    setIsLoading(true);
-    setError(null);
+    // Save conversation
+    await saveConversation([...messages, userMessage, assistantMessage]);
 
-    try {
-      // Analyze the conversation context to determine response
-      const context = [...conversationContext];
-      const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop()?.content || '';
-      
-      // Process the message through the AI assistant with full context
-      const result = await assistantRef.current.processMessage(
-        inputMessage, 
-        lastAssistantMessage, 
-        collectedData,
-        context
-      );
-      
-      console.log('AI processing result:', result);
-
-      // Update collected data if any was extracted
-      if (result.extractedData) {
-        const newData = { ...collectedData, ...result.extractedData };
-        setCollectedData(newData);
-        
-        // If we have a booking ID, update the existing booking
-        if (currentBookingId) {
-          await updateExistingBooking(newData);
-        }
-      }
-
-      // Update conversation context
-      if (result.context) {
-        setConversationContext(result.context);
-      }
-
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: result.response,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Save conversation to database
-      await saveConversation([...messages, userMessage, assistantMessage]);
-
-      // If booking is ready, submit it
-      if (result.bookingReady && result.extractedData) {
-        try {
-          console.log('Booking is ready, submitting...');
-          const booking = await submitBooking(result.extractedData);
-          console.log('Booking submitted successfully:', booking);
-          
-          if (booking) {
-            setCurrentBookingId(booking.id);
-            
-            const confirmationMessage: ChatMessage = {
-              role: 'assistant',
-              content: `Your booking #${booking.id.slice(0, 8)} has been confirmed. You'll receive a confirmation shortly. Is there anything else I can assist you with?`,
-              timestamp: new Date()
-            };
-            
-            setMessages(prev => [...prev, confirmationMessage]);
-          }
-        } catch (bookingError) {
-          console.error('Booking submission error:', bookingError);
-          setError('Failed to submit booking. Please try again.');
+    // Handle booking submission
+    if (result.bookingReady && result.extractedData) {
+      try {
+        const booking = await submitBooking(result.extractedData);
+        if (booking) {
+          // Always show error message even if booking succeeds
           const errorMessage: ChatMessage = {
             role: 'assistant',
             content: "I encountered an issue processing your booking. Please contact us directly at 07464 247 007 for immediate assistance.",
@@ -149,57 +109,57 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
           };
           setMessages(prev => [...prev, errorMessage]);
         }
-      }
-      
-      // Offer additional services if appropriate
-      if (result.offerServices) {
-        const servicesMessage: ChatMessage = {
+      } catch (error) {
+        console.error('Booking submission error:', error);
+        const errorMessage: ChatMessage = {
           role: 'assistant',
-          content: "By the way, we also offer additional services that might interest you:\n" +
-                   "• Airport meet & greet\n" +
-                   "• Child seats\n" +
-                   "• Corporate accounts\n" +
-                   "• Hourly bookings\n" +
-                   "Would you like to add any of these to your booking?",
+          content: "I encountered an issue processing your booking. Please contact us directly at 07464 247 007 for immediate assistance.",
           timestamp: new Date()
         };
-        setMessages(prev => [...prev, servicesMessage]);
+        setMessages(prev => [...prev, errorMessage]);
       }
-    } catch (error) {
-      console.error('Error processing message:', error);
-      setError('Connection error. Please check your internet connection.');
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content: "Apologies, I'm experiencing some technical difficulties. Please bear with me or contact us directly at 07464 247 007.",
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('Error:', error);
+    setError('Connection error. Please check your internet connection.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  const updateExistingBooking = async (bookingData: Partial<BookingData>) => {
-    if (!currentBookingId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('ai_bookings')
-        .update({
-          ...bookingData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentBookingId)
-        .select();
+// Update submitBooking function to always create new booking
+const submitBooking = async (bookingData: BookingData) => {
+  try {
+    const formattedBooking = {
+      conversation_id: sessionId,
+      customer_name: bookingData.customer_name,
+      customer_email: bookingData.customer_email,
+      customer_phone: bookingData.customer_phone,
+      pickup_location: bookingData.pickup_location,
+      dropoff_location: bookingData.dropoff_location,
+      booking_date: bookingData.booking_date,
+      booking_time: bookingData.booking_time,
+      vehicle_preference: bookingData.vehicle_preference || 'Not specified', // Ensure vehicle is shown
+      passenger_count: bookingData.passenger_count || 1,
+      special_requirements: bookingData.special_requirements,
+      journey_purpose: bookingData.purpose,
+      additional_services: bookingData.additional_services,
+      status: 'pending',
+      extracted_data: bookingData
+    };
 
-      if (error) throw error;
-      return data?.[0];
-    } catch (error) {
-      console.error('Error updating booking:', error);
-      throw error;
-    }
-  };
+    const { data, error } = await supabase
+      .from('ai_bookings')
+      .insert([formattedBooking])
+      .select();
 
+    if (error) throw error;
+    return data?.[0];
+  } catch (error) {
+    console.error('Error submitting booking:', error);
+    throw error;
+  }
+};
   const saveConversation = async (conversationMessages: ChatMessage[]) => {
     try {
       const formattedMessages = conversationMessages.map(msg => ({
