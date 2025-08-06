@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Minimize2, Maximize2 } from 'lucide-react';
@@ -21,6 +20,8 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [currentQuestion, setCurrentQuestion] = useState<string | null>(null);
+  const [collectedData, setCollectedData] = useState<Partial<BookingData>>({});
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const assistantRef = useRef<VIPBookingAssistant | null>(null);
@@ -43,10 +44,11 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
     if (isOpen && messages.length === 0) {
       const welcomeMessage: ChatMessage = {
         role: 'assistant',
-        content: "Hello! I'm your VIP Transport booking assistant. I'm here to help you arrange luxury chauffeur services. How can I assist you today?",
+        content: "Welcome to VIP Transport Services. My name is Nova, and I'll be assisting you with your luxury chauffeur booking today. May I begin by asking for your full name?",
         timestamp: new Date()
       };
       setMessages([welcomeMessage]);
+      setCurrentQuestion('full_name');
     }
   }, [isOpen, messages.length]);
 
@@ -71,58 +73,148 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
     setError(null);
 
     try {
-      // Process the message through the AI assistant
-      const result = await assistantRef.current.processMessage(inputMessage);
-      console.log('AI processing result:', result);
+      // Store the user's response to the current question
+      if (currentQuestion) {
+        const updatedData = {
+          ...collectedData,
+          [currentQuestion]: inputMessage
+        };
+        setCollectedData(updatedData);
+        console.log('Updated collected data:', updatedData);
+      }
+
+      // Determine next question based on collected data
+      const nextQuestion = getNextQuestion(collectedData, currentQuestion);
       
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: result.response,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Save conversation to database
-      await saveConversation([...messages, userMessage, assistantMessage]);
-
-      // If booking is ready, submit it
-      if (result.bookingReady && result.extractedData) {
-        try {
-          console.log('Booking is ready, submitting...');
-          const booking = await submitBooking(result.extractedData);
-          console.log('Booking submitted successfully:', booking);
-          
-          const confirmationMessage: ChatMessage = {
-            role: 'assistant',
-            content: `Perfect! Your booking #${booking?.id.slice(0, 8)} has been submitted. You'll receive a confirmation soon. Need anything else?`,
-            timestamp: new Date()
-          };
-          
-          setMessages(prev => [...prev, confirmationMessage]);
-        } catch (bookingError) {
-          console.error('Booking submission error:', bookingError);
-          setError('Failed to submit booking. Please try again.');
-          const errorMessage: ChatMessage = {
-            role: 'assistant',
-            content: "I couldn't complete your booking. Please try again or contact us directly at 07464 247 007.",
-            timestamp: new Date()
-          };
-          setMessages(prev => [...prev, errorMessage]);
+      if (nextQuestion === 'complete') {
+        // All information collected, prepare booking
+        const completeData = {
+          ...collectedData,
+          [currentQuestion as string]: inputMessage
+        } as BookingData;
+        
+        console.log('All data collected, preparing booking:', completeData);
+        
+        const assistantMessage: ChatMessage = {
+          role: 'assistant',
+          content: "Thank you for providing all the details. I'll now prepare your booking. One moment please...",
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, assistantMessage]);
+        
+        // Process the booking
+        const result = await assistantRef.current.processBooking(completeData);
+        console.log('Booking processing result:', result);
+        
+        const confirmationMessage: ChatMessage = {
+          role: 'assistant',
+          content: result.response,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, confirmationMessage]);
+        
+        // Save conversation and submit booking
+        await saveConversation([...messages, userMessage, assistantMessage, confirmationMessage]);
+        
+        if (result.bookingReady && result.extractedData) {
+          try {
+            console.log('Booking is ready, submitting...');
+            const booking = await submitBooking(result.extractedData);
+            console.log('Booking submitted successfully:', booking);
+            
+            const finalMessage: ChatMessage = {
+              role: 'assistant',
+              content: `Your booking #${booking?.id.slice(0, 8)} has been confirmed. You'll receive a confirmation shortly. Is there anything else I can assist you with today?`,
+              timestamp: new Date()
+            };
+            
+            setMessages(prev => [...prev, finalMessage]);
+          } catch (bookingError) {
+            console.error('Booking submission error:', bookingError);
+            setError('Failed to submit booking. Please try again.');
+            const errorMessage: ChatMessage = {
+              role: 'assistant',
+              content: "I encountered an issue processing your booking. Please contact us directly at 07464 247 007 for assistance.",
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMessage]);
+          }
         }
+      } else {
+        // Ask the next question
+        const nextQuestionMessage = getQuestionMessage(nextQuestion);
+        const assistantMessage: ChatMessage = {
+          role: 'assistant',
+          content: nextQuestionMessage,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, assistantMessage]);
+        setCurrentQuestion(nextQuestion);
+        
+        // Save conversation to database
+        await saveConversation([...messages, userMessage, assistantMessage]);
       }
     } catch (error) {
       console.error('Error processing message:', error);
       setError('Connection error. Please check your internet connection.');
       const errorMessage: ChatMessage = {
         role: 'assistant',
-        content: "I'm having some trouble. Please try again or contact us directly at 07464 247 007.",
+        content: "I'm experiencing technical difficulties. Please try again or contact us directly at 07464 247 007.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getNextQuestion = (data: Partial<BookingData>, currentQ: string | null): string | 'complete' => {
+    // Define the order of questions
+    const questionFlow = [
+      'full_name',
+      'phone_number',
+      'email',
+      'pickup_location',
+      'dropoff_location',
+      'date',
+      'time',
+      'passenger_count',
+      'vehicle_preference',
+      'special_requirements',
+      'purpose',
+      'additional_services'
+    ];
+    
+    if (!currentQ) return 'full_name';
+    
+    const currentIndex = questionFlow.indexOf(currentQ);
+    if (currentIndex === -1 || currentIndex === questionFlow.length - 1) {
+      return 'complete';
+    }
+    
+    return questionFlow[currentIndex + 1];
+  };
+
+  const getQuestionMessage = (question: string): string => {
+    const questions: Record<string, string> = {
+      'full_name': "May I have your full name please?",
+      'phone_number': "Thank you. Could you please provide your contact number?",
+      'email': "For confirmation purposes, may I have your email address?",
+      'pickup_location': "Where would you like to be picked up from? Please provide the full address.",
+      'dropoff_location': "And what is your destination address?",
+      'date': "On which date would you require this service?",
+      'time': "At what time should we arrive for pickup?",
+      'passenger_count': "How many passengers will be traveling?",
+      'vehicle_preference': "Do you have a preference for a specific vehicle type? We offer luxury sedans, SUVs, and executive vans.",
+      'special_requirements': "Are there any special requirements we should be aware of? (child seats, wheelchair access, etc.)",
+      'purpose': "May I ask the purpose of your journey? (airport transfer, business meeting, wedding, etc.)",
+      'additional_services': "Would you like to add any additional services? (waiting time, multiple stops, meet & greet, etc.)"
+    };
+    
+    return questions[question] || "Thank you for that information. Now, may I proceed with your booking?";
   };
 
   const saveConversation = async (conversationMessages: ChatMessage[]) => {
@@ -140,7 +232,8 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
           session_id: sessionId,
           messages: formattedMessages,
           updated_at: new Date().toISOString(),
-          status: 'active'
+          status: 'active',
+          collected_data: collectedData
         }, {
           onConflict: 'session_id'
         })
@@ -155,7 +248,6 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
       return data;
     } catch (error) {
       console.error('Error saving conversation:', error);
-      // Don't show this error to the user as it's a background process
     }
   };
 
@@ -179,6 +271,8 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
         vehicle_preference: bookingData.vehicle_preference || null,
         passenger_count: bookingData.passenger_count || 1,
         special_requirements: bookingData.special_requirements || null,
+        journey_purpose: bookingData.purpose || null,
+        additional_services: bookingData.additional_services || null,
         extracted_data: bookingData,
         status: 'pending'
       };
