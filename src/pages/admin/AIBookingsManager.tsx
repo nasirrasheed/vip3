@@ -77,7 +77,7 @@ export default function AIBookingsManager() {
 
   const updateStatus = async (id: string, newStatus: AIBooking['status']) => {
     try {
-      console.log(Updating status for booking ${id} to ${newStatus});
+      console.log(`Updating status for booking ${id} to ${newStatus}`);
       const { error } = await supabase
         .from('ai_bookings')
         .update({ 
@@ -184,13 +184,13 @@ export default function AIBookingsManager() {
                       <h3 className="font-medium text-gray-900">
                         {booking.customer_name || 'Anonymous'}
                       </h3>
-                      <span className={px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.status)}}>
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.status)}`}>
                         {booking.status}
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 mb-2">
                       {booking.pickup_location && booking.dropoff_location 
-                        ? ${booking.pickup_location} → ${booking.dropoff_location}
+                        ? `${booking.pickup_location} → ${booking.dropoff_location}`
                         : 'Location details pending'
                       }
                     </p>
@@ -233,7 +233,7 @@ export default function AIBookingsManager() {
                     {selectedBooking.customer_email && (
                       <div className="flex items-center space-x-2">
                         <Mail className="w-4 h-4 text-gray-400" />
-                        <a href={mailto:${selectedBooking.customer_email}} className="text-blue-600 hover:text-blue-800">
+                        <a href={`mailto:${selectedBooking.customer_email}`} className="text-blue-600 hover:text-blue-800">
                           {selectedBooking.customer_email}
                         </a>
                       </div>
@@ -241,7 +241,7 @@ export default function AIBookingsManager() {
                     {selectedBooking.customer_phone && (
                       <div className="flex items-center space-x-2">
                         <Phone className="w-4 h-4 text-gray-400" />
-                        <a href={tel:${selectedBooking.customer_phone}} className="text-blue-600 hover:text-blue-800">
+                        <a href={`tel:${selectedBooking.customer_phone}`} className="text-blue-600 hover:text-blue-800">
                           {selectedBooking.customer_phone}
                         </a>
                       </div>
@@ -335,6 +335,6 @@ export default function AIBookingsManager() {
           )}
         </div>
       </div>
-    </div>
-  );
+    </div>
+  );
 }
