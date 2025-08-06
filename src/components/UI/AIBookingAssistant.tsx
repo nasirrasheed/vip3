@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Minimize2, Maximize2 } from 'lucide-react';
 import { VIPBookingAssistant, ChatMessage, BookingData } from '../../lib/gemini';
-import { supabase, ChatConversation } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 interface AIBookingAssistantProps {
   isVisible?: boolean;
@@ -28,9 +28,10 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
   // Initialize the assistant
   useEffect(() => {
     if (!assistantRef.current) {
-      assistantRef.current = new VIPBookingAssistant();
+      assistantRef.current = new VIPBookingAssistant(sessionId);
+      console.log('AI Assistant initialized with session:', sessionId);
     }
-  }, []);
+  }, [sessionId]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -56,6 +57,8 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading || !assistantRef.current) return;
 
+    console.log('Sending message:', inputMessage);
+
     const userMessage: ChatMessage = {
       role: 'user',
       content: inputMessage,
@@ -70,6 +73,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
     try {
       // Process the message through the AI assistant
       const result = await assistantRef.current.processMessage(inputMessage);
+      console.log('AI processing result:', result);
       
       const assistantMessage: ChatMessage = {
         role: 'assistant',
@@ -85,7 +89,9 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
       // If booking is ready, submit it
       if (result.bookingReady && result.extractedData) {
         try {
+          console.log('Booking is ready, submitting...');
           const booking = await submitBooking(result.extractedData);
+          console.log('Booking submitted successfully:', booking);
           
           const confirmationMessage: ChatMessage = {
             role: 'assistant',
@@ -96,6 +102,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
           setMessages(prev => [...prev, confirmationMessage]);
         } catch (bookingError) {
           console.error('Booking submission error:', bookingError);
+          setError('Failed to submit booking. Please try again.');
           const errorMessage: ChatMessage = {
             role: 'assistant',
             content: "I couldn't complete your booking. Please try again or contact us directly at 07464 247 007.",
@@ -106,6 +113,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
       }
     } catch (error) {
       console.error('Error processing message:', error);
+      setError('Connection error. Please check your internet connection.');
       const errorMessage: ChatMessage = {
         role: 'assistant',
         content: "I'm having some trouble. Please try again or contact us directly at 07464 247 007.",
@@ -119,12 +127,14 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
 
   const saveConversation = async (conversationMessages: ChatMessage[]) => {
     try {
+      console.log('Saving conversation with messages:', conversationMessages.length);
       const formattedMessages = conversationMessages.map(msg => ({
         role: msg.role,
-        content: msg.content
+        content: msg.content,
+        timestamp: msg.timestamp.toISOString()
       }));
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('chat_conversations')
         .upsert({
           session_id: sessionId,
@@ -133,9 +143,16 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
           status: 'active'
         }, {
           onConflict: 'session_id'
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving conversation:', error);
+        throw error;
+      }
+      
+      console.log('Conversation saved successfully:', data);
+      return data;
     } catch (error) {
       console.error('Error saving conversation:', error);
       // Don't show this error to the user as it's a background process
@@ -144,42 +161,55 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
 
   const submitBooking = async (bookingData: BookingData) => {
     try {
+      console.log('Submitting booking with data:', bookingData);
+      
       // First ensure the conversation exists
       await saveConversation(messages);
 
       const formattedBooking = {
         conversation_id: sessionId,
-        customer_name: bookingData.name || '',
-        customer_email: bookingData.email || '',
-        customer_phone: bookingData.phone || '',
-        pickup_location: bookingData.pickup || '',
-        dropoff_location: bookingData.dropoff || '',
-        booking_date: bookingData.date || null,
-        booking_time: bookingData.time || null,
-        service_type: bookingData.serviceType || '',
-        vehicle_preference: bookingData.vehicle || '',
-        passenger_count: bookingData.passengers ? parseInt(bookingData.passengers) : null,
-        special_requirements: bookingData.requirements || '',
+        customer_name: bookingData.customer_name || null,
+        customer_email: bookingData.customer_email || null,
+        customer_phone: bookingData.customer_phone || null,
+        pickup_location: bookingData.pickup_location || null,
+        dropoff_location: bookingData.dropoff_location || null,
+        booking_date: bookingData.booking_date || null,
+        booking_time: bookingData.booking_time || null,
+        service_type: bookingData.service_type || null,
+        vehicle_preference: bookingData.vehicle_preference || null,
+        passenger_count: bookingData.passenger_count || 1,
+        special_requirements: bookingData.special_requirements || null,
         extracted_data: bookingData,
         status: 'pending'
       };
+
+      console.log('Formatted booking data:', formattedBooking);
 
       const { data, error } = await supabase
         .from('ai_bookings')
         .insert([formattedBooking])
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error inserting booking:', error);
+        throw error;
+      }
+
+      console.log('Booking inserted successfully:', data);
 
       // Update conversation with booking ID
       if (data && data[0]) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('chat_conversations')
           .update({ 
             booking_id: data[0].id,
             updated_at: new Date().toISOString()
           })
           .eq('session_id', sessionId);
+          
+        if (updateError) {
+          console.error('Error updating conversation with booking ID:', updateError);
+        }
       }
 
       return data?.[0];
@@ -297,7 +327,9 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
                             : 'bg-gray-100 text-gray-800'
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <p className="text-sm whitespace-pre-wrap">
+                          {message.content.replace('BOOKING_READY_FOR_SUBMISSION', '').trim()}
+                        </p>
                         <p className="text-xs opacity-60 mt-1">
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nbbtynvqklebekbaaiqg.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iYnR5bnZxa2xlYmVrYmFhaXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5NzAwNDksImV4cCI6MjA2NzU0NjA0OX0._jXKlwZFwUNiqUgpZarupDjBSKds7u6MHKhzUY_4CMU';
 
 // Enhanced Supabase client with better error handling
 export const supabase = createClient(supabaseUrl, supabaseKey, {
@@ -10,11 +10,14 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
   },
   auth: {
     persistSession: true,
-    autoRefreshToken: true
+    autoRefreshToken: true,
+    detectSessionInUrl: false
   }
 });
 
-
+// Test connection on initialization
+console.log('Supabase client initialized with URL:', supabaseUrl);
+console.log('Supabase client initialized with key:', supabaseKey ? 'Key present' : 'Key missing');
 
 // Type definitions
 export type Service = {
@@ -193,15 +196,24 @@ export const updateChatConversation = async (sessionId: string, updates: Partial
 // Add a function to check connection
 export const checkSupabaseConnection = async () => {
   try {
+    console.log('Testing Supabase connection...');
     const { data, error } = await supabase
       .from('ai_bookings')
       .select('*')
       .limit(1);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase connection test failed:', error);
+      throw error;
+    }
+    
+    console.log('Supabase connection test successful:', data);
     return { connected: true, data };
   } catch (error) {
     console.error('Supabase connection check failed:', error);
     return { connected: false, error };
   }
 };
+
+// Test connection immediately
+checkSupabaseConnection();
