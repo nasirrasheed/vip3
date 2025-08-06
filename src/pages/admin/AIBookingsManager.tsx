@@ -1,329 +1,442 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Check, X, Trash2, MessageSquare, Calendar, User, MapPin, Phone, Mail } from 'lucide-react';
-import { supabase, AIBooking } from '../../lib/supabase'; 
+import { Eye, Check, X, Trash2, MessageSquare, Calendar, User, MapPin, Phone, Mail, Search, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { supabase, AIBooking } from '../../lib/supabase';
 
 export default function AIBookingsManager() {
   const [bookings, setBookings] = useState<AIBooking[]>([]);
+  const [filteredBookings, setFilteredBookings] = useState<AIBooking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<AIBooking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [dateSort, setDateSort] = useState<'asc' | 'desc'>('desc');
+  const [expandedFilters, setExpandedFilters] = useState(false);
+
+  const statusOptions = ['pending', 'confirmed', 'accepted', 'rejected', 'completed', 'cancelled'];
 
   useEffect(() => {
     fetchBookings();
     const subscription = setupRealtimeUpdates();
-    
     return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
-      }
+      if (subscription) supabase.removeChannel(subscription);
     };
   }, []);
 
+  useEffect(() => {
+    let results = bookings;
+    
+    // Apply search filter
+    if (searchTerm) {
+      results = results.filter(booking => 
+        booking.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.customer_phone?.includes(searchTerm) ||
+        booking.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.pickup_location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.dropoff_location?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Apply status filter
+    if (statusFilter.length > 0) {
+      results = results.filter(booking => statusFilter.includes(booking.status));
+    }
+    
+    // Apply date sorting
+    results = [...results].sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return dateSort === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+    
+    setFilteredBookings(results);
+  }, [bookings, searchTerm, statusFilter, dateSort]);
+
   const fetchBookings = async () => {
-    console.log('Fetching bookings...');
     setLoading(true);
-    setError(null);
     try {
       const { data, error } = await supabase
         .from('ai_bookings')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
-
-      console.log('Fetched bookings:', data);
+      if (error) throw error;
       setBookings(data || []);
     } catch (err) {
-      console.error('Error fetching bookings:', err);
       setError(err.message || 'Failed to load bookings');
     } finally {
       setLoading(false);
     }
   };
 
-  const setupRealtimeUpdates = () => {
-    console.log('Setting up realtime updates...');
-    try {
-      const channel = supabase
-        .channel('ai_bookings_updates')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'ai_bookings'
-        }, (payload) => {
-          console.log('Realtime change received:', payload);
-          fetchBookings();
-        })
-        .subscribe((status, err) => {
-          if (err) {
-            console.error('Realtime subscription error:', err);
-            setError('Realtime connection failed');
-          }
-          console.log('Realtime subscription status:', status);
-        });
-
-      return channel;
-    } catch (err) {
-      console.error('Error setting up realtime:', err);
-      setError('Failed to setup realtime updates');
-      return null;
-    }
+  const toggleStatusFilter = (status: string) => {
+    setStatusFilter(prev => 
+      prev.includes(status) 
+        ? prev.filter(s => s !== status) 
+        : [...prev, status]
+    );
   };
 
-  const updateStatus = async (id: string, newStatus: AIBooking['status']) => {
-    try {
-      console.log(`Updating status for booking ${id} to ${newStatus}`);
-      const { error } = await supabase
-        .from('ai_bookings')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error updating status:', error);
-        throw error;
-      }
-      
-      console.log('Status updated successfully');
-      await fetchBookings(); // Refresh the list
-    } catch (err) {
-      console.error('Error updating status:', err);
-      setError(err.message || 'Failed to update status');
-    }
+  const toggleDateSort = () => {
+    setDateSort(prev => prev === 'desc' ? 'asc' : 'desc');
   };
-
-  const deleteBooking = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this booking?')) return;
-    
-    try {
-      const { error } = await supabase
-        .from('ai_bookings')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      await fetchBookings();
-      setSelectedBooking(null);
-    } catch (err) {
-      console.error('Error deleting booking:', err);
-      setError(err.message || 'Failed to delete booking');
-    }
-  };
-
-  const filteredBookings = statusFilter === 'all' 
-    ? bookings 
-    : bookings.filter(booking => booking.status === statusFilter);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'cancelled': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  if (loading) return <div className="p-4">Loading bookings...</div>;
-  if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-serif font-bold text-gray-900">AI Bookings Manager</h1>
-        <div className="flex items-center space-x-4">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-400 focus:border-yellow-400"
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">AI Bookings Manager</h1>
+          <p className="text-sm text-gray-500">
+            {filteredBookings.length} {filteredBookings.length === 1 ? 'booking' : 'bookings'} found
+          </p>
+        </div>
+        
+        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+          {/* Search */}
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search bookings..."
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-yellow-400 focus:border-yellow-400"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          {/* Filter Button */}
+          <button
+            onClick={() => setExpandedFilters(!expandedFilters)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="accepted">Accepted</option>
-            <option value="rejected">Rejected</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+            <Filter className="h-4 w-4" />
+            <span>Filters</span>
+            {expandedFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
         </div>
       </div>
-      
+
+      {/* Expanded Filters */}
+      {expandedFilters && (
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {statusOptions.map(status => (
+              <button
+                key={status}
+                onClick={() => toggleStatusFilter(status)}
+                className={`px-3 py-1 rounded-full text-sm flex items-center gap-2 ${
+                  statusFilter.includes(status)
+                    ? `bg-${getStatusColor(status).split(' ')[0]} text-${getStatusColor(status).split(' ')[1]}`
+                    : 'bg-gray-100 text-gray-800'
+                }`}
+              >
+                <span className="capitalize">{status}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Bookings List */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                AI Bookings ({filteredBookings.length})
-              </h2>
-            </div>
-            <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-              {filteredBookings.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>No AI bookings found</p>
-                </div>
-              ) : (
-                filteredBookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 ${
-                      selectedBooking?.id === booking.id ? 'bg-yellow-50' : ''
-                    }`}
+        {/* Bookings Table */}
+        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Journey
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Vehicle
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={toggleDateSort}
+                  >
+                    <div className="flex items-center gap-1">
+                      Date
+                      {dateSort === 'desc' ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                    </div>
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredBookings.map((booking) => (
+                  <tr 
+                    key={booking.id} 
+                    className={`hover:bg-gray-50 cursor-pointer ${selectedBooking?.id === booking.id ? 'bg-yellow-50' : ''}`}
                     onClick={() => setSelectedBooking(booking)}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium text-gray-900">
-                        {booking.customer_name || 'Anonymous'}
-                      </h3>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                          <User className="h-5 w-5 text-yellow-600" />
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {booking.customer_name || 'Anonymous'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {booking.customer_phone}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {booking.pickup_location}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        → {booking.dropoff_location}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {booking.vehicle_preference || 'Not specified'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {new Date(booking.booking_date).toLocaleDateString()}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {booking.booking_time}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.status)}`}>
                         {booking.status}
                       </span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {booking.pickup_location && booking.dropoff_location 
-                        ? `${booking.pickup_location} → ${booking.dropoff_location}`
-                        : 'Location details pending'
-                      }
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(booking.created_at).toLocaleDateString()} at {new Date(booking.created_at).toLocaleTimeString()}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateStatus(booking.id, 'accepted');
+                        }}
+                        className="text-green-600 hover:text-green-900 mr-3"
+                        title="Accept booking"
+                      >
+                        <Check className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateStatus(booking.id, 'rejected');
+                        }}
+                        className="text-red-600 hover:text-red-900"
+                        title="Reject booking"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+          
+          {filteredBookings.length === 0 && (
+            <div className="p-8 text-center text-gray-500">
+              <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>No bookings match your criteria</p>
+            </div>
+          )}
         </div>
 
-        {/* Booking Details */}
+        {/* Booking Details Panel */}
         <div className="lg:col-span-1">
           {selectedBooking ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Booking Details</h2>
-                <button
-                  onClick={() => deleteBooking(selectedBooking.id)}
-                  className="text-red-600 hover:text-red-900"
-                  title="Delete booking"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* Customer Info */}
-                <div>
-                  <h3 className="font-medium text-gray-900 mb-2">Customer Information</h3>
-                  <div className="space-y-2 text-sm">
-                    {selectedBooking.customer_name && (
-                      <div className="flex items-center space-x-2">
-                        <User className="w-4 h-4 text-gray-400" />
-                        <span>{selectedBooking.customer_name}</span>
-                      </div>
-                    )}
-                    {selectedBooking.customer_email && (
-                      <div className="flex items-center space-x-2">
-                        <Mail className="w-4 h-4 text-gray-400" />
-                        <a href={`mailto:${selectedBooking.customer_email}`} className="text-blue-600 hover:text-blue-800">
-                          {selectedBooking.customer_email}
-                        </a>
-                      </div>
-                    )}
-                    {selectedBooking.customer_phone && (
-                      <div className="flex items-center space-x-2">
-                        <Phone className="w-4 h-4 text-gray-400" />
-                        <a href={`tel:${selectedBooking.customer_phone}`} className="text-blue-600 hover:text-blue-800">
-                          {selectedBooking.customer_phone}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Booking Details */}
-                <div>
-                  <h3 className="font-medium text-gray-900 mb-2">Booking Details</h3>
-                  <div className="space-y-2 text-sm">
-                    {selectedBooking.pickup_location && (
-                      <div className="flex items-start space-x-2">
-                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                        <div>
-                          <p className="font-medium">Pickup:</p>
-                          <p>{selectedBooking.pickup_location}</p>
-                        </div>
-                      </div>
-                    )}
-                    {selectedBooking.dropoff_location && (
-                      <div className="flex items-start space-x-2">
-                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                        <div>
-                          <p className="font-medium">Dropoff:</p>
-                          <p>{selectedBooking.dropoff_location}</p>
-                        </div>
-                      </div>
-                    )}
-                    {(selectedBooking.booking_date || selectedBooking.booking_time) && (
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span>
-                          {selectedBooking.booking_date} {selectedBooking.booking_time}
-                        </span>
-                      </div>
-                    )}
-                    {selectedBooking.service_type && (
-                      <p><strong>Service:</strong> {selectedBooking.service_type}</p>
-                    )}
-                    {selectedBooking.vehicle_preference && (
-                      <p><strong>Vehicle:</strong> {selectedBooking.vehicle_preference}</p>
-                    )}
-                    {selectedBooking.passenger_count && (
-                      <p><strong>Passengers:</strong> {selectedBooking.passenger_count}</p>
-                    )}
-                    {selectedBooking.special_requirements && (
-                      <div>
-                        <p className="font-medium">Special Requirements:</p>
-                        <p className="whitespace-pre-wrap">{selectedBooking.special_requirements}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status Management */}
-                <div>
-                  <h3 className="font-medium text-gray-900 mb-2">Status</h3>
-                  <div className="flex space-x-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-6">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Booking Details</h2>
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => updateStatus(selectedBooking.id, 'accepted')}
-                      className="flex items-center space-x-1 bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
-                      disabled={selectedBooking.status === 'accepted'}
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedBooking.id);
+                        alert('Booking ID copied to clipboard');
+                      }}
+                      className="text-gray-500 hover:text-gray-700"
+                      title="Copy booking ID"
                     >
-                      <Check className="w-4 h-4" />
-                      <span>Accept</span>
+                      <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+                        #{selectedBooking.id.slice(0, 8)}
+                      </span>
                     </button>
                     <button
-                      onClick={() => updateStatus(selectedBooking.id, 'rejected')}
-                      className="flex items-center space-x-1 bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
-                      disabled={selectedBooking.status === 'rejected'}
+                      onClick={() => deleteBooking(selectedBooking.id)}
+                      className="text-red-600 hover:text-red-900"
+                      title="Delete booking"
                     >
-                      <X className="w-4 h-4" />
-                      <span>Reject</span>
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
 
-                {/* Timestamps */}
-                <div className="text-xs text-gray-500 pt-4 border-t">
-                  <p>Created: {new Date(selectedBooking.created_at).toLocaleString()}</p>
-                  <p>Updated: {new Date(selectedBooking.updated_at).toLocaleString()}</p>
+                <div className="space-y-6">
+                  {/* Customer Section */}
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-3 pb-2 border-b">Customer Information</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <User className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Name</p>
+                          <p className="text-gray-900">{selectedBooking.customer_name || 'Not provided'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Phone className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Phone</p>
+                          <p className="text-gray-900">
+                            {selectedBooking.customer_phone || 'Not provided'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Mail className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Email</p>
+                          <p className="text-gray-900">
+                            {selectedBooking.customer_email || 'Not provided'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Booking Details Section */}
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-3 pb-2 border-b">Booking Details</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Pickup Location</p>
+                          <p className="text-gray-900">
+                            {selectedBooking.pickup_location || 'Not provided'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Dropoff Location</p>
+                          <p className="text-gray-900">
+                            {selectedBooking.dropoff_location || 'Not provided'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Calendar className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Date & Time</p>
+                          <p className="text-gray-900">
+                            {selectedBooking.booking_date ? new Date(selectedBooking.booking_date).toLocaleDateString() : 'Not specified'} at {selectedBooking.booking_time || '--:--'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Vehicle</p>
+                          <p className="text-gray-900">
+                            {selectedBooking.vehicle_preference || 'Not specified'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Passengers</p>
+                          <p className="text-gray-900">
+                            {selectedBooking.passenger_count || 'Not specified'}
+                          </p>
+                        </div>
+                      </div>
+                      {selectedBooking.special_requirements && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Special Requirements</p>
+                          <p className="text-gray-900 whitespace-pre-wrap">
+                            {selectedBooking.special_requirements}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status Management */}
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-3 pb-2 border-b">Status Management</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => updateStatus(selectedBooking.id, 'confirmed')}
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          selectedBooking.status === 'confirmed' 
+                            ? 'bg-yellow-100 text-yellow-800' 
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => updateStatus(selectedBooking.id, 'accepted')}
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          selectedBooking.status === 'accepted' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => updateStatus(selectedBooking.id, 'rejected')}
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          selectedBooking.status === 'rejected' 
+                            ? 'bg-red-100 text-red-800' 
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => updateStatus(selectedBooking.id, 'completed')}
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          selectedBooking.status === 'completed' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                      >
+                        Complete
+                      </button>
+                      <button
+                        onClick={() => updateStatus(selectedBooking.id, 'cancelled')}
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          selectedBooking.status === 'cancelled' 
+                            ? 'bg-gray-100 text-gray-800' 
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Timestamps */}
+                  <div className="pt-4 border-t text-xs text-gray-500 space-y-1">
+                    <p>Created: {new Date(selectedBooking.created_at).toLocaleString()}</p>
+                    <p>Updated: {new Date(selectedBooking.updated_at).toLocaleString()}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -338,3 +451,16 @@ export default function AIBookingsManager() {
     </div>
   );
 }
+
+// Helper function for status colors
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'pending': return 'bg-yellow-100 text-yellow-800';
+    case 'confirmed': return 'bg-yellow-100 text-yellow-800';
+    case 'accepted': return 'bg-green-100 text-green-800';
+    case 'rejected': return 'bg-red-100 text-red-800';
+    case 'completed': return 'bg-blue-100 text-blue-800';
+    case 'cancelled': return 'bg-gray-100 text-gray-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
