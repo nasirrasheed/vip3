@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Minimize2, Maximize2, Crown, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { VIPBookingAssistant, ChatMessage, BookingData } from '@/lib/gemini';
-import { supabase } from '@/lib/supabase';
+import { VIPBookingAssistant, ChatMessage, BookingData } from '../../lib/gemini';
+import { supabase } from '../../lib/supabase';
 
 interface VIPChatAssistantProps {
   isVisible?: boolean;
@@ -14,7 +14,7 @@ interface VIPChatAssistantProps {
 }
 
 const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({ 
-  isVisible = true,
+  isVisible = true, 
   position = 'bottom-right',
   onBookingComplete,
   existingCustomerId,
@@ -25,7 +25,11 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sessionId] = useState(() => existingCustomerId || `vip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [collectedData, setCollectedData] = useState<Partial<BookingData>>(existingBookingData || {});
+  const [conversationContext, setConversationContext] = useState<string[]>([]);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const assistantRef = useRef<VIPBookingAssistant | null>(null);
 
@@ -33,6 +37,7 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
   useEffect(() => {
     if (!assistantRef.current) {
       assistantRef.current = new VIPBookingAssistant(sessionId);
+      console.log('VIP Assistant initialized with session:', sessionId);
     }
   }, [sessionId]);
 
@@ -53,6 +58,7 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
         timestamp: new Date()
       };
       setMessages([welcomeMessage]);
+      setConversationContext(['greeting']);
       saveConversation([welcomeMessage]);
     }
   }, [isOpen, messages.length, existingBookingData]);
@@ -74,35 +80,49 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
+    setError(null);
 
     try {
-      // Process the message through the AI assistant (lovable code behavior)
+      // Process the message through the AI assistant
       const result = await assistantRef.current.processMessage(
         inputMessage,
-        existingBookingData
+        messages.filter(m => m.role === 'assistant').pop()?.content || '',
+        collectedData,
+        conversationContext
       );
       
+      // Update collected data if any was extracted
+      if (result.extractedData) {
+        setCollectedData(prev => ({ ...prev, ...result.extractedData }));
+      }
+
+      // Update conversation context
+      if (result.context) {
+        setConversationContext(result.context);
+      }
+
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
         role: 'assistant',
         content: result.response,
         timestamp: new Date(),
-        data_collected: result.collected_data
+        data_collected: result.extractedData
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      
-      // Save conversation to Supabase (your existing backend)
+
+      // Save conversation to database
       await saveConversation([...messages, userMessage, assistantMessage]);
 
-      // If booking is ready, submit it (your existing logic)
-      if (result.booking_ready && result.collected_data) {
+      // If booking is ready, submit it
+      if (result.bookingReady && result.extractedData) {
         try {
-          const booking = await submitBooking(result.collected_data as BookingData);
+          console.log('VIP Booking is ready, submitting...');
+          const booking = await submitBooking(result.extractedData);
           console.log('VIP Booking submitted successfully:', booking);
           
           if (onBookingComplete) {
-            onBookingComplete(result.collected_data as BookingData);
+            onBookingComplete(result.extractedData);
           }
 
           const confirmationMessage: ChatMessage = {
@@ -116,6 +136,7 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
           await saveConversation([...messages, userMessage, assistantMessage, confirmationMessage]);
         } catch (bookingError) {
           console.error('VIP Booking submission error:', bookingError);
+          setError('Failed to submit VIP booking. Please try again.');
           const errorMessage: ChatMessage = {
             id: `msg_${Date.now()}_error`,
             role: 'assistant',
@@ -128,6 +149,7 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
       }
     } catch (error) {
       console.error('Error processing message:', error);
+      setError('Connection error. Please check your internet connection.');
       const errorMessage: ChatMessage = {
         id: `msg_${Date.now()}_error`,
         role: 'assistant',
@@ -141,7 +163,6 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
     }
   };
 
-  // Your existing Supabase functions
   const saveConversation = async (conversationMessages: ChatMessage[]) => {
     try {
       const formattedMessages = conversationMessages.map(msg => ({
@@ -156,9 +177,10 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
         .upsert({
           session_id: sessionId,
           messages: formattedMessages,
-          collected_data: messages.find(m => m.data_collected)?.data_collected || {},
+          collected_data: collectedData,
+          context: conversationContext,
           updated_at: new Date().toISOString(),
-          status: messages.some(m => m.content.includes('confirmed')) ? 'completed' : 'active'
+          status: conversationContext.includes('booking_complete') ? 'completed' : 'active'
         }, {
           onConflict: 'session_id'
         })
@@ -185,6 +207,8 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
         vehicle_preference: bookingData.vehicle_preference,
         passenger_count: bookingData.passenger_count || 1,
         special_requirements: bookingData.special_requirements,
+        journey_purpose: bookingData.purpose,
+        additional_services: bookingData.additional_services,
         status: 'confirmed',
         is_vip: true,
         extracted_data: bookingData
@@ -316,7 +340,11 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
 
             {!isMinimized && (
               <>
-                {/* Messages Area */}
+                {error && (
+                  <div className="bg-red-100 text-red-800 p-2 rounded text-sm mx-4 mt-2">
+                    {error}
+                  </div>
+                )}
                 <div className="h-96 overflow-y-auto p-4 space-y-4 bg-vip-light/30">
                   {messages.map((message) => (
                     <motion.div
@@ -364,7 +392,6 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input Area */}
                 <div className="border-t border-gray-200 p-4 bg-white">
                   <div className="flex space-x-2">
                     <input
