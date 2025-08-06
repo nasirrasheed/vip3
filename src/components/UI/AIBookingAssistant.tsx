@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Minimize2, Maximize2, Crown, Phone } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { VIPBookingAssistant, ChatMessage, BookingData } from '../../lib/gemini';
 import { supabase } from '../../lib/supabase';
 
-interface VIPChatAssistantProps {
+interface AIBookingAssistantProps {
   isVisible?: boolean;
   position?: 'bottom-right' | 'bottom-left';
   onBookingComplete?: (booking: BookingData) => void;
@@ -13,7 +12,7 @@ interface VIPChatAssistantProps {
   existingBookingData?: Partial<BookingData>;
 }
 
-const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({ 
+const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ 
   isVisible = true, 
   position = 'bottom-right',
   onBookingComplete,
@@ -59,12 +58,23 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
       };
       setMessages([welcomeMessage]);
       setConversationContext(['greeting']);
-      saveConversation([welcomeMessage]);
     }
   }, [isOpen, messages.length, existingBookingData]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const formatMessageContent = (content: string) => {
+    return content
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/•/g, '•')
+      .split('\n').map((line, index) => (
+        <div key={index} className={index > 0 ? 'mt-1' : ''}>
+          <span dangerouslySetInnerHTML={{ __html: line || '&nbsp;' }} />
+        </div>
+      ));
   };
 
   const handleSendMessage = async () => {
@@ -91,15 +101,7 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
         conversationContext
       );
       
-      // Update collected data if any was extracted
-      if (result.extractedData) {
-        setCollectedData(prev => ({ ...prev, ...result.extractedData }));
-      }
-
-      // Update conversation context
-      if (result.context) {
-        setConversationContext(result.context);
-      }
+      console.log('AI processing result:', result);
 
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_assistant`,
@@ -111,16 +113,28 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
 
       setMessages(prev => [...prev, assistantMessage]);
 
+      // Update collected data if any was extracted
+      if (result.extractedData) {
+        const newData = { ...collectedData, ...result.extractedData };
+        setCollectedData(newData);
+      }
+
+      // Update conversation context
+      if (result.context) {
+        setConversationContext(result.context);
+      }
+
       // Save conversation to database
       await saveConversation([...messages, userMessage, assistantMessage]);
 
       // If booking is ready, submit it
       if (result.bookingReady && result.extractedData) {
         try {
-          console.log('VIP Booking is ready, submitting...');
+          console.log('Booking is ready, submitting...');
           const booking = await submitBooking(result.extractedData);
-          console.log('VIP Booking submitted successfully:', booking);
+          console.log('Booking submitted successfully:', booking);
           
+          // Notify parent component if callback provided
           if (onBookingComplete) {
             onBookingComplete(result.extractedData);
           }
@@ -128,19 +142,19 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
           const confirmationMessage: ChatMessage = {
             id: `msg_${Date.now()}_confirm`,
             role: 'assistant',
-            content: `Your VIP booking has been confirmed. You'll receive a confirmation shortly. Is there anything else I can assist you with?`,
+            content: `Your VIP booking #${booking?.id.slice(0, 8)} has been confirmed. You'll receive a confirmation shortly. Is there anything else I can assist you with?`,
             timestamp: new Date()
           };
           
           setMessages(prev => [...prev, confirmationMessage]);
           await saveConversation([...messages, userMessage, assistantMessage, confirmationMessage]);
         } catch (bookingError) {
-          console.error('VIP Booking submission error:', bookingError);
-          setError('Failed to submit VIP booking. Please try again.');
+          console.error('Booking submission error:', bookingError);
+          setError('Failed to submit booking. Please try again.');
           const errorMessage: ChatMessage = {
             id: `msg_${Date.now()}_error`,
             role: 'assistant',
-            content: "I encountered an issue processing your VIP booking. Please contact us directly at +44 7464 247 007 for immediate assistance.",
+            content: "I encountered an issue processing your booking. Please contact us directly at +44 7464 247 007 for immediate assistance.",
             timestamp: new Date()
           };
           setMessages(prev => [...prev, errorMessage]);
@@ -153,7 +167,7 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
       const errorMessage: ChatMessage = {
         id: `msg_${Date.now()}_error`,
         role: 'assistant',
-        content: "I apologize for the technical difficulty. Please contact us directly at +44 7464 247 007 or continue with your request.",
+        content: "Apologies, I'm experiencing technical difficulties. Please contact us directly at +44 7464 247 007 or try again later.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -166,6 +180,7 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
   const saveConversation = async (conversationMessages: ChatMessage[]) => {
     try {
       const formattedMessages = conversationMessages.map(msg => ({
+        id: msg.id,
         role: msg.role,
         content: msg.content,
         timestamp: msg.timestamp.toISOString(),
@@ -173,14 +188,15 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
       }));
 
       const { data, error } = await supabase
-        .from('vip_conversations')
+        .from('vip_chat_conversations')
         .upsert({
           session_id: sessionId,
           messages: formattedMessages,
           collected_data: collectedData,
           context: conversationContext,
           updated_at: new Date().toISOString(),
-          status: conversationContext.includes('booking_complete') ? 'completed' : 'active'
+          status: conversationContext.includes('booking_complete') ? 'completed' : 'active',
+          is_vip: true
         }, {
           onConflict: 'session_id'
         })
@@ -204,14 +220,15 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
         dropoff_location: bookingData.dropoff_location,
         booking_date: bookingData.booking_date,
         booking_time: bookingData.booking_time,
-        vehicle_preference: bookingData.vehicle_preference,
+        vehicle_preference: bookingData.vehicle_preference || 'Premium Sedan',
         passenger_count: bookingData.passenger_count || 1,
         special_requirements: bookingData.special_requirements,
-        journey_purpose: bookingData.purpose,
+        journey_purpose: bookingData.purpose || 'Personal',
         additional_services: bookingData.additional_services,
         status: 'confirmed',
+        extracted_data: bookingData,
         is_vip: true,
-        extracted_data: bookingData
+        priority_level: 'high'
       };
 
       const { data, error } = await supabase
@@ -224,10 +241,11 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
       // Update conversation with booking ID
       if (data && data[0]) {
         await supabase
-          .from('vip_conversations')
+          .from('vip_chat_conversations')
           .update({ 
             booking_id: data[0].id,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            status: 'completed'
           })
           .eq('session_id', sessionId);
       }
@@ -246,18 +264,6 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
     }
   };
 
-  const formatMessageContent = (content: string) => {
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/•/g, '•')
-      .split('\n').map((line, index) => (
-        <div key={index} className={index > 0 ? 'mt-1' : ''}>
-          <span dangerouslySetInnerHTML={{ __html: line || '&nbsp;' }} />
-        </div>
-      ));
-  };
-
   if (!isVisible) return null;
 
   const positionClasses = {
@@ -269,24 +275,22 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
     <>
       <AnimatePresence>
         {!isOpen && (
-          <motion.div
+          <motion.button
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className={`fixed bottom-6 ${positionClasses[position]} z-50`}
+            onClick={() => setIsOpen(true)}
+            className={`fixed bottom-6 ${positionClasses[position]} z-50 bg-gradient-to-r from-vip-gold to-vip-gold-dark text-vip-black p-4 rounded-full shadow-luxury transition-all duration-300 hover:scale-110`}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            aria-label="Open VIP chat assistant"
           >
-            <Button
-              onClick={() => setIsOpen(true)}
-              className="bg-vip-gold hover:bg-vip-gold-dark text-vip-black p-4 rounded-full shadow-luxury transition-all duration-300 hover:scale-110"
-              size="lg"
-            >
-              <Crown className="w-6 h-6 mr-2" />
-              <MessageCircle className="w-6 h-6" />
-              <div className="absolute -top-2 -right-2 bg-vip-accent text-white text-xs rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
-                VIP
-              </div>
-            </Button>
-          </motion.div>
+            <Crown className="w-6 h-6 mr-2" />
+            <MessageCircle className="w-6 h-6" />
+            <div className="absolute -top-2 -right-2 bg-vip-accent text-white text-xs rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+              VIP
+            </div>
+          </motion.button>
         )}
       </AnimatePresence>
 
@@ -304,7 +308,6 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
             className={`fixed bottom-6 ${positionClasses[position]} z-50 bg-white rounded-lg shadow-luxury border border-vip-gold/20 overflow-hidden`}
             style={{ width: '420px' }}
           >
-            {/* Header */}
             <div className="bg-gradient-to-r from-vip-black to-vip-black/90 text-vip-gold p-4 flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-vip-gold rounded-full flex items-center justify-center">
@@ -319,29 +322,27 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   onClick={() => setIsMinimized(!isMinimized)}
-                  className="text-vip-gold hover:bg-vip-gold/10 p-1"
+                  className="text-vip-gold hover:bg-vip-gold/10 p-1 rounded"
+                  aria-label={isMinimized ? 'Maximize' : 'Minimize'}
                 >
                   {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                </button>
+                <button
                   onClick={() => setIsOpen(false)}
-                  className="text-vip-gold hover:bg-vip-gold/10 p-1"
+                  className="text-vip-gold hover:bg-vip-gold/10 p-1 rounded"
+                  aria-label="Close"
                 >
                   <X className="w-4 h-4" />
-                </Button>
+                </button>
               </div>
             </div>
 
             {!isMinimized && (
               <>
                 {error && (
-                  <div className="bg-red-100 text-red-800 p-2 rounded text-sm mx-4 mt-2">
+                  <div className="bg-red-100 text-red-800 p-2 text-sm mx-4 mt-2 rounded-lg">
                     {error}
                   </div>
                 )}
@@ -403,13 +404,13 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-vip-gold focus:border-vip-gold text-sm"
                       disabled={isLoading}
                     />
-                    <Button
+                    <button
                       onClick={handleSendMessage}
                       disabled={isLoading || !inputMessage.trim()}
-                      className="bg-vip-gold hover:bg-vip-gold-dark text-vip-black px-3 py-2"
+                      className="bg-vip-gold hover:bg-vip-gold-dark text-vip-black px-3 py-2 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Send className="w-4 h-4" />
-                    </Button>
+                    </button>
                   </div>
                   <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
                     <span>🔒 Premium & Confidential Service</span>
@@ -428,4 +429,4 @@ const VIPChatAssistant: React.FC<VIPChatAssistantProps> = ({
   );
 };
 
-export default VIPChatAssistant;
+export default AIBookingAssistant;
