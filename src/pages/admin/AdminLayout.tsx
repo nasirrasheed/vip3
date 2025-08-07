@@ -11,7 +11,8 @@ import {
   Building,
   Bot,
   LogOut,
-  Menu,
+  Menu, 
+  MessageSquare as ChatIcon,
   X
 } from 'lucide-react';
 import { useState } from 'react';
@@ -32,6 +33,7 @@ const AdminLayout = () => {
     { name: 'Company Logos', href: '/admin/company-logos', icon: Building },
     { name: 'Inquiries', href: '/admin/inquiries', icon: Mail },
     { name: 'AI Bookings', href: '/admin/ai-bookings', icon: Bot },
+    { name: 'Chat Conversations', href: '/admin/chat-conversations', icon: ChatIcon },
   ];
 
   const isActive = (path: string) => location.pathname === path;

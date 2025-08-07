@@ -13,6 +13,7 @@ import InquiriesManager from './pages/admin/InquiriesManager';
 import TestimonialsManager from './pages/admin/TestimonialsManager';
 import AIBookingsManager from './pages/admin/AIBookingsManager';
 import ChatConversations from './pages/admin/ChatConversations';
+
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import ExperiencePage from './pages/ExperiencePage';
@@ -82,7 +83,7 @@ function App() {
           <Route path="inquiries" element={<InquiriesManager />} />
           <Route path="testimonials" element={<TestimonialsManager />} />
           <Route path="ai-bookings" element={<AIBookingsManager />} />
-          <Route path="chat_conversations" element={<ChatConversations />} />
+          <Route path="chat-conversations" element={<ChatConversations />} />
           
           <Route index element={<Navigate to="/admin/dashboard" />} />
         </Route>
