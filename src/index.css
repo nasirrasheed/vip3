@@ -15,7 +15,7 @@ img.h-10.w-10.object-cover {
     width: 2.5rem;
     height: 2.5rem;
 }
-@media (max-width:425px ){
+@media (max-width: 425px ){
     a.flex.items-center.space-x-3.font-bold.text-xl.md\:text-2xl.lg\:text-3xl.hover\:text-gray-800.transition-colors.duration-200 {
     font-size: 18px !important;
 }
