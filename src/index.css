@@ -37,3 +37,7 @@ a.text-sm.\32 xl\:text-base.font-medium.transition-colors.duration-200.whitespac
 a.text-sm.\32 xl\:text-base.font-medium.transition-colors.duration-200.whitespace-nowrap.text-yellow-400 {
     color: #1089ef;
 }
+button.bg-yellow-400.text-black.px-8.py-4.rounded-md.font-medium.hover\:bg-yellow-500.transition-colors.duration-200.inline-flex.items-center.space-x-2 {
+    background: #1089ef;
+    color: #fff;
+}
