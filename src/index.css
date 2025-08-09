@@ -20,3 +20,8 @@ img.h-10.w-10.object-cover {
     font-size: 18px !important;
   }
 }
+
+.fixed.top-0.left-0.right-0.z-50.bg-yellow-400.text-black.shadow-lg {
+    background-color: #0189ef;
+    color: #fff;
+}
