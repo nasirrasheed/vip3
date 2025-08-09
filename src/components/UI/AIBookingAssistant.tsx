@@ -10,7 +10,7 @@ interface AIBookingAssistantProps {
 
 const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({ 
   isVisible = true, 
-  position = 'bottom-left' 
+  position = 'bottom-right'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -136,7 +136,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
 
   const positionClasses = {
     'bottom-right': 'right-6',
-    'bottom-left': 'left-6'
+    
   };
 
   return (
