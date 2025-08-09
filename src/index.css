@@ -21,26 +21,3 @@ img.h-10.w-10.object-cover {
   }
 }
 
-.fixed.top-0.left-0.right-0.z-50.bg-yellow-400.text-black.shadow-lg {
-    background-color: #0189ef;
-    color: #fff;
-}
-span.text-yellow-400 {
-    color: #0189ef;
-}
-.text-yellow-400.text-xs.sm\:text-xs.lg\:text-sm.font-light.italic.leading-tight.sm\:block {
-    color: #0189EF;
-}
-a.text-sm.\32 xl\:text-base.font-medium.transition-colors.duration-200.whitespace-nowrap.text-white.hover\:text-yellow-400 {
-    color: #fff;
-}
-a.text-sm.\32 xl\:text-base.font-medium.transition-colors.duration-200.whitespace-nowrap.text-yellow-400 {
-    color: #1089ef;
-}
-button.bg-yellow-400.text-black.px-8.py-4.rounded-md.font-medium.hover\:bg-yellow-500.transition-colors.duration-200.inline-flex.items-center.space-x-2 {
-    background: #1089ef;
-    color: #fff;
-}.flex.items-center.justify-center.w-12.h-12.bg-yellow-400.rounded-lg.mb-4 {
-    background-color: #1089ef;
-    color: #fff;
-}
