@@ -28,3 +28,6 @@ img.h-10.w-10.object-cover {
 span.text-yellow-400 {
     color: #0189ef;
 }
+.text-yellow-400.text-xs.sm\:text-xs.lg\:text-sm.font-light.italic.leading-tight.sm\:block {
+    color: #0189EF;
+}
