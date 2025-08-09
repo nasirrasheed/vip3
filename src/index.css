@@ -31,3 +31,6 @@ span.text-yellow-400 {
 .text-yellow-400.text-xs.sm\:text-xs.lg\:text-sm.font-light.italic.leading-tight.sm\:block {
     color: #0189EF;
 }
+a.text-sm.\32 xl\:text-base.font-medium.transition-colors.duration-200.whitespace-nowrap.text-white.hover\:text-yellow-400 {
+    color: #1089ef;
+}
