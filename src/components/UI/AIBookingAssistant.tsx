@@ -273,9 +273,16 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
                       <Send className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    🌟 VIP Transport & Security • Professional Luxury Services
-                  </p>
+                 <p className="text-xs text-gray-500 mt-2 text-center">
+  <a
+    href="https://marknova.vercel.app/"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="hover:underline"
+  >
+    Created By MarkNova
+  </a>
+</p>
                 </div>
               </>
             )}
