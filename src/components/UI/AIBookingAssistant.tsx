@@ -273,7 +273,7 @@ const AIBookingAssistant: React.FC<AIBookingAssistantProps> = ({
                       <Send className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="flex flex-col sm:flex-row justify-between items-center mt-2 text-xs text-gray-500">
+                  <div className="flex flex-col sm:flex-col justify-between items-center mt-2 text-xs text-gray-500">
   <p className="sm:text-left text-center">
     🌟 VIP Transport & Security • Professional Luxury Services
   </p>
