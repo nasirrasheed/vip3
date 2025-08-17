@@ -97,20 +97,185 @@ export class VIPBookingAssistant {
     });
   }
 
+  // Enhanced data extraction that captures multiple fields from a single message
+  private extractAllDataFromMessage(userMessage: string): void {
+    const message = userMessage.trim();
+    console.log('Extracting all data from message:', message);
+
+    // Extract name patterns
+    const namePatterns = [
+      /(?:i'm|i am|my name is|name is|call me|this is)\s+([a-zA-Z\s]{2,30})/i,
+      /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*[,.]?\s*(?:[a-zA-Z0-9._%+-]+@|[\d\+\-\(\)\s]+|\w)/,
+      /^hi,?\s+i'm\s+([a-zA-Z\s]{2,30})/i
+    ];
+
+    for (const pattern of namePatterns) {
+      const match = message.match(pattern);
+      if (match && !this.extractedData.customer_name) {
+        const name = match[1].trim();
+        if (name.length > 1 && name.length < 50 && !name.toLowerCase().includes('@')) {
+          this.extractedData.customer_name = name;
+          console.log('Extracted name:', name);
+          break;
+        }
+      }
+    }
+
+    // Extract email
+    const emailMatch = message.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+    if (emailMatch && !this.extractedData.customer_email) {
+      this.extractedData.customer_email = emailMatch[0];
+      console.log('Extracted email:', emailMatch[0]);
+    }
+
+    // Extract phone - more flexible patterns
+    const phonePatterns = [
+      /(\+44|0)[\s-]?(\d{4})[\s-]?(\d{3})[\s-]?(\d{3})/,
+      /(\d{5})[\s-]?(\d{6})/,
+      /\b\d{10,15}\b/
+    ];
+
+    for (const pattern of phonePatterns) {
+      const match = message.match(pattern);
+      if (match && !this.extractedData.customer_phone) {
+        this.extractedData.customer_phone = match[0];
+        console.log('Extracted phone:', match[0]);
+        break;
+      }
+    }
+
+    // Extract service type with more patterns
+    const lowerMessage = message.toLowerCase();
+    const servicePatterns = [
+      { keywords: ['chauffeur', 'driver'], service: 'Chauffeur Service' },
+      { keywords: ['airport', 'flight', 'terminal'], service: 'Airport Transfers' },
+      { keywords: ['wedding', 'marriage', 'bride', 'groom'], service: 'Wedding Transport' },
+      { keywords: ['corporate', 'business', 'office', 'meeting'], service: 'Corporate Transport' },
+      { keywords: ['event', 'party', 'gala', 'premiere'], service: 'Event Transport' },
+      { keywords: ['security', 'protection', 'bodyguard'], service: 'Security Services' }
+    ];
+
+    for (const pattern of servicePatterns) {
+      if (pattern.keywords.some(keyword => lowerMessage.includes(keyword)) && !this.extractedData.service_type) {
+        this.extractedData.service_type = pattern.service;
+        console.log('Extracted service type:', pattern.service);
+        break;
+      }
+    }
+
+    // Extract locations with better context awareness
+    const locationPatterns = [
+      /(?:from|pickup|pick\s+up|collect)\s+(.+?)(?:\s+to|\s+and|\s*$)/i,
+      /(?:to|destination|drop\s+off|going\s+to)\s+(.+?)(?:\s+from|\s+at|\s*$)/i
+    ];
+
+    for (const pattern of locationPatterns) {
+      const match = message.match(pattern);
+      if (match) {
+        const location = match[1].trim();
+        if (location.length > 3) {
+          if (pattern.source.includes('from|pickup') && !this.extractedData.pickup_location) {
+            this.extractedData.pickup_location = location;
+            console.log('Extracted pickup location:', location);
+          } else if (pattern.source.includes('to|destination') && !this.extractedData.dropoff_location) {
+            this.extractedData.dropoff_location = location;
+            console.log('Extracted dropoff location:', location);
+          }
+        }
+      }
+    }
+
+    // If no specific pickup/dropoff found, try to extract any address-like text
+    if (!this.extractedData.pickup_location && !this.extractedData.dropoff_location) {
+      const addressPatterns = [
+        /\b\d+[\s,]+[a-zA-Z\s]+(?:street|road|avenue|lane|drive|way)\b/i,
+        /\b[a-zA-Z\s]+(?:airport|station|hotel|hospital|university|mall|center)\b/i
+      ];
+
+      for (const pattern of addressPatterns) {
+        const match = message.match(pattern);
+        if (match && !this.extractedData.pickup_location) {
+          this.extractedData.pickup_location = match[0];
+          console.log('Extracted general location:', match[0]);
+          break;
+        }
+      }
+    }
+
+    // Extract dates with more flexibility
+    const datePatterns = [
+      /\b(?:today|tomorrow)\b/i,
+      /\b(?:next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i,
+      /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/,
+      /\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?\b/i
+    ];
+
+    for (const pattern of datePatterns) {
+      const match = message.match(pattern);
+      if (match && !this.extractedData.booking_date) {
+        this.extractedData.booking_date = match[0];
+        console.log('Extracted date:', match[0]);
+        break;
+      }
+    }
+
+    // Extract time
+    const timeMatch = message.match(/\b\d{1,2}[:\.]?\d{0,2}\s?(?:am|pm|AM|PM)?\b/);
+    if (timeMatch && !this.extractedData.booking_time) {
+      this.extractedData.booking_time = timeMatch[0];
+      console.log('Extracted time:', timeMatch[0]);
+    }
+
+    // Extract passenger count
+    const passengerPatterns = [
+      /\b(\d+)\s+(?:passenger|people|person)/i,
+      /\bjust\s+me\b/i,
+      /\bone\s+person/i,
+      /\btwo\s+people/i,
+      /\bthree\s+people/i
+    ];
+
+    for (const pattern of passengerPatterns) {
+      const match = message.match(pattern);
+      if (match && !this.extractedData.passenger_count) {
+        if (match[0].toLowerCase().includes('just me') || match[0].toLowerCase().includes('one person')) {
+          this.extractedData.passenger_count = 1;
+        } else if (match[0].toLowerCase().includes('two people')) {
+          this.extractedData.passenger_count = 2;
+        } else if (match[0].toLowerCase().includes('three people')) {
+          this.extractedData.passenger_count = 3;
+        } else if (match[1]) {
+          this.extractedData.passenger_count = parseInt(match[1]);
+        }
+        console.log('Extracted passenger count:', this.extractedData.passenger_count);
+        break;
+      }
+    }
+
+    console.log('All extracted data:', this.extractedData);
+  }
+
   private analyzeUserMessage(userMessage: string): {
     isRelevant: boolean;
     sentiment: 'positive' | 'negative' | 'neutral' | 'confused';
-    intent: 'booking' | 'question' | 'smalltalk' | 'complaint' | 'goodbye';
+    intent: 'booking' | 'question' | 'smalltalk' | 'complaint' | 'goodbye' | 'decline_optional' | 'provide_info';
     containsData: boolean;
+    isBookingCancellation: boolean;
   } {
     const message = userMessage.toLowerCase().trim();
     
-    // Check for disinterest/goodbye
-    const disinterestKeywords = [
-      'no', 'nope', 'nah', 'no thanks', 'not interested', 'don\'t want', 'pass',
-      'forget it', 'leave it', 'drop it', 'never mind', 'stop', 'not now',
-      'maybe later', 'another time', 'later', 'not ready', 'not today',
-      'bye', 'goodbye', 'see you', 'talk later', 'gtg', 'gotta go'
+    // Check for absolute booking cancellation (strong negative intent)
+    const cancellationKeywords = [
+      'cancel', 'stop', 'quit', 'exit', 'abort', 'end this',
+      'don\'t want this', 'not interested anymore', 'forget it completely',
+      'leave me alone', 'stop messaging', 'unsubscribe'
+    ];
+
+    // Check for optional field decline (not cancellation)
+    const optionalDeclineKeywords = [
+      'no special requirements', 'nothing special', 'no thanks', 'skip this',
+      'leave it', 'pass', 'no preference', 'whatever', 'you choose',
+      'not needed', 'no requirement', 'standard is fine'
     ];
 
     // Check for positive responses
@@ -137,15 +302,22 @@ export class VIPBookingAssistant {
       'wrong', 'bad', 'terrible', 'awful', 'hate', 'don\'t like'
     ];
 
-    const isRelevant = this.isMessageRelevantToBooking(message);
+    const isRelevant = this.isMessageRelevantToBooking(message) || this.messageContainsBookingData(message);
     const containsData = this.messageContainsBookingData(message);
     
-    let sentiment: 'positive' | 'negative' | 'neutral' | 'confused' = 'neutral';
-    let intent: 'booking' | 'question' | 'smalltalk' | 'complaint' | 'goodbye' = 'booking';
+    // Determine if this is a booking cancellation or just declining an optional field
+    const isBookingCancellation = cancellationKeywords.some(keyword => message.includes(keyword)) &&
+                                  !optionalDeclineKeywords.some(keyword => message.includes(keyword));
 
-    if (disinterestKeywords.some(keyword => message.includes(keyword))) {
+    let sentiment: 'positive' | 'negative' | 'neutral' | 'confused' = 'neutral';
+    let intent: 'booking' | 'question' | 'smalltalk' | 'complaint' | 'goodbye' | 'decline_optional' | 'provide_info' = 'booking';
+
+    if (isBookingCancellation) {
       sentiment = 'negative';
       intent = 'goodbye';
+    } else if (optionalDeclineKeywords.some(keyword => message.includes(keyword))) {
+      sentiment = 'neutral';
+      intent = 'decline_optional';
     } else if (positiveKeywords.some(keyword => message.includes(keyword))) {
       sentiment = 'positive';
     } else if (complaintKeywords.some(keyword => message.includes(keyword))) {
@@ -156,6 +328,9 @@ export class VIPBookingAssistant {
     } else if (smallTalkKeywords.some(keyword => message.includes(keyword))) {
       intent = 'smalltalk';
       sentiment = 'positive';
+    } else if (containsData) {
+      intent = 'provide_info';
+      sentiment = 'positive';
     }
 
     // Detect confusion
@@ -164,7 +339,7 @@ export class VIPBookingAssistant {
       sentiment = 'confused';
     }
 
-    return { isRelevant, sentiment, intent, containsData };
+    return { isRelevant, sentiment, intent, containsData, isBookingCancellation };
   }
 
   private isMessageRelevantToBooking(message: string): boolean {
@@ -194,11 +369,59 @@ export class VIPBookingAssistant {
     // Check for numbers (passenger count, etc.)
     const numberPattern = /\b\d+\b/;
 
+    // Check for names (simple pattern)
+    const namePattern = /^[a-zA-Z\s]{2,30}$/;
+
     return emailPattern.test(message) || 
            phonePattern.test(message) || 
            datePattern.test(message) || 
            timePattern.test(message) || 
-           (numberPattern.test(message) && message.length > 2);
+           (numberPattern.test(message) && message.length > 2) ||
+           (namePattern.test(message) && !message.toLowerCase().includes('no'));
+  }
+
+  private handleOptionalFieldDecline(step: string): string {
+    console.log('Handling optional field decline for step:', step);
+    
+    switch (step) {
+      case 'special_requirements':
+        this.extractedData.special_requirements = 'None';
+        return "Perfect! No special requirements keeps things nice and straightforward.";
+      
+      case 'vehicle_preference':
+        this.extractedData.vehicle_preference = 'No specific preference - please select suitable vehicle';
+        return "Got it! I'll select the perfect vehicle for your needs.";
+      
+      default:
+        return "Understood! Let's move on.";
+    }
+  }
+
+  private getIntelligentResponse(userMessage: string): string {
+    const analysis = this.analyzeUserMessage(userMessage);
+    
+    // Handle booking cancellation
+    if (analysis.isBookingCancellation) {
+      this.userInterestLevel = 'disinterested';
+      return "I completely understand! No pressure at all. If you ever need VIP transport services in the future, I'll be here to help. Have a wonderful day! 😊";
+    }
+
+    // Handle optional field decline
+    if (analysis.intent === 'decline_optional') {
+      const response = this.handleOptionalFieldDecline(this.currentStep);
+      return response;
+    }
+
+    // Extract all possible data from the message
+    this.extractAllDataFromMessage(userMessage);
+
+    // Handle off-topic but maintain context
+    if (!analysis.isRelevant && !analysis.containsData) {
+      return this.handleOffTopicMessage(userMessage, analysis);
+    }
+
+    // Continue with normal flow
+    return this.getStepResponse(this.currentStep, userMessage, analysis);
   }
 
   private handleOffTopicMessage(userMessage: string, analysis: any): string {
@@ -261,24 +484,6 @@ export class VIPBookingAssistant {
     return questions[this.currentStep] || "the next detail for your booking";
   }
 
-  private getIntelligentResponse(userMessage: string): string {
-    const analysis = this.analyzeUserMessage(userMessage);
-    
-    // Handle goodbye/disinterest
-    if (analysis.intent === 'goodbye' && analysis.sentiment === 'negative') {
-      this.userInterestLevel = 'disinterested';
-      return "I completely understand! No pressure at all. If you ever need VIP transport services in the future, I'll be here to help. Have a wonderful day! 😊";
-    }
-
-    // Handle off-topic but maintain context
-    if (!analysis.isRelevant && !analysis.containsData) {
-      return this.handleOffTopicMessage(userMessage, analysis);
-    }
-
-    // Continue with normal flow
-    return this.getStepResponse(this.currentStep, userMessage, analysis);
-  }
-
   private getStepResponse(step: string, userMessage: string, analysis: any): string {
     this.attemptCount[step] = (this.attemptCount[step] || 0) + 1;
 
@@ -294,12 +499,7 @@ export class VIPBookingAssistant {
       name: () => {
         if (this.extractedData.customer_name) {
           const firstName = this.extractedData.customer_name.split(' ')[0];
-          const greetings = [
-            `Lovely to meet you, ${firstName}! I'm excited to help arrange your perfect journey.`,
-            `Wonderful, ${firstName}! I'm here to make your transport booking effortless.`,
-            `Perfect, ${firstName}! Let's get your luxury transport sorted.`
-          ];
-          return greetings[Math.floor(Math.random() * greetings.length)];
+          return `Lovely to meet you, ${firstName}! I can see you're interested in our premium transport services. Let me gather a few details to arrange the perfect journey for you.`;
         }
         
         if (this.attemptCount[step] > 2) {
@@ -361,7 +561,7 @@ export class VIPBookingAssistant {
 
         const serviceType = this.extractedData.service_type;
         if (serviceType?.includes('Airport')) {
-          return "Excellent! Are you traveling from your home, hotel, or office to the airport? Just let me know the pickup address.";
+          return "Excellent! Where should we pick you up for your airport transfer? Your home, hotel, or office address?";
         } else if (serviceType?.includes('Wedding')) {
           return "How exciting! Where should we collect you for your special day? Your home, hotel, or the venue where you're getting ready?";
         }
@@ -489,132 +689,24 @@ export class VIPBookingAssistant {
     return `Based on your ${serviceType?.toLowerCase() || 'transport needs'} and ${passengerCount} passenger${passengerCount > 1 ? 's' : ''}, here are my recommendations:\n\n${recommendations.map(r => `• ${r}`).join('\n')}\n\nWhich appeals to you, or would you like me to choose the best option?`;
   }
 
-  private extractDataFromResponse(userMessage: string, step: string): void {
-    const message = userMessage.trim();
-    
-    switch (step) {
-      case 'name':
-        // Extract any name-like text
-        const nameMatch = message.match(/(?:i'm|i am|name is|call me)\s+([a-zA-Z\s]+)/i) ||
-                         message.match(/^([a-zA-Z\s]{2,30})$/);
-        if (nameMatch) {
-          this.extractedData.customer_name = nameMatch[1].trim();
-        } else if (message.length > 1 && message.length < 50 && !message.toLowerCase().includes('not')) {
-          // Assume single word/phrase responses are names
-          this.extractedData.customer_name = message;
-        }
-        break;
-        
-      case 'email':
-        const emailMatch = message.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
-        if (emailMatch) {
-          this.extractedData.customer_email = emailMatch[0];
-        }
-        break;
-        
-      case 'phone':
-        // More flexible phone matching
-        const phoneMatch = message.match(/(\+44|0)[\s-]?(\d{4})[\s-]?(\d{3})[\s-]?(\d{3})|(\d{5})[\s-]?(\d{6})/) ||
-                          message.match(/\b\d{10,15}\b/);
-        if (phoneMatch) {
-          this.extractedData.customer_phone = phoneMatch[0];
-        }
-        break;
-        
-      case 'service_type':
-        const lowerMessage = message.toLowerCase();
-        const serviceMap = {
-          'chauffeur': 'Chauffeur Service',
-          'airport': 'Airport Transfers',
-          'wedding': 'Wedding Transport',
-          'corporate': 'Corporate Transport',
-          'business': 'Corporate Transport',
-          'event': 'Event Transport',
-          'security': 'Security Services',
-          'transfer': 'Airport Transfers'
-        };
-        
-        for (const [key, value] of Object.entries(serviceMap)) {
-          if (lowerMessage.includes(key)) {
-            this.extractedData.service_type = value;
-            break;
-          }
-        }
-        break;
-        
-      case 'pickup_location':
-      case 'dropoff_location':
-        if (message.length > 3 && !message.toLowerCase().includes('don\'t know')) {
-          this.extractedData[step] = message;
-        }
-        break;
-        
-      case 'booking_date':
-        // Flexible date parsing
-        if (message.toLowerCase().includes('today')) {
-          this.extractedData.booking_date = 'Today';
-        } else if (message.toLowerCase().includes('tomorrow')) {
-          this.extractedData.booking_date = 'Tomorrow';
-        } else if (message.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/)) {
-          this.extractedData.booking_date = message;
-        } else if (message.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)) {
-          this.extractedData.booking_date = message;
-        }
-        break;
-        
-      case 'booking_time':
-        const timeMatch = message.match(/\d{1,2}[:\.]?\d{0,2}\s?(am|pm|AM|PM)?/);
-        if (timeMatch) {
-          this.extractedData.booking_time = message;
-        }
-        break;
-        
-      case 'passenger_count':
-        const countMatch = message.match(/\d+/);
-        if (countMatch) {
-          this.extractedData.passenger_count = parseInt(countMatch[0]);
-        } else if (message.toLowerCase().includes('one') || message.toLowerCase().includes('just me')) {
-          this.extractedData.passenger_count = 1;
-        } else if (message.toLowerCase().includes('two')) {
-          this.extractedData.passenger_count = 2;
-        } else if (message.toLowerCase().includes('three')) {
-          this.extractedData.passenger_count = 3;
-        }
-        break;
-        
-      case 'vehicle_preference':
-        if (message.toLowerCase().includes('no preference') || 
-            message.toLowerCase().includes('you choose') ||
-            message.toLowerCase().includes('surprise me')) {
-          this.extractedData.vehicle_preference = 'No specific preference - please select suitable vehicle';
-        } else if (message.length > 3) {
-          this.extractedData.vehicle_preference = message;
-        }
-        break;
-        
-      case 'special_requirements':
-        if (message.toLowerCase().includes('none') || 
-            message.toLowerCase().includes('no special') || 
-            message.toLowerCase().includes('nothing') ||
-            message.toLowerCase().includes('no requirements')) {
-          this.extractedData.special_requirements = 'None';
-        } else if (message.length > 2) {
-          this.extractedData.special_requirements = message;
-        }
-        break;
-    }
-  }
-
   private getNextStep(): string {
+    // Smart step progression - skip steps that are already complete
     const currentIndex = this.stepOrder.indexOf(this.currentStep);
-    if (currentIndex < this.stepOrder.length - 1) {
-      return this.stepOrder[currentIndex + 1];
+    
+    for (let i = currentIndex + 1; i < this.stepOrder.length; i++) {
+      const nextStep = this.stepOrder[i];
+      if (!this.isStepComplete(nextStep)) {
+        return nextStep;
+      }
     }
-    return 'completed';
+    
+    // If all steps are complete, go to confirmation
+    return 'confirmation';
   }
 
   private isStepComplete(step: string): boolean {
     switch (step) {
+      case 'greeting': return this.hasGreeted;
       case 'name': return !!this.extractedData.customer_name;
       case 'email': return !!this.extractedData.customer_email;
       case 'phone': return !!this.extractedData.customer_phone;
@@ -650,6 +742,16 @@ export class VIPBookingAssistant {
 📝 **Requirements:** ${this.extractedData.special_requirements}`;
   }
 
+  private generateContextualResponse(extractedFieldsCount: number): string {
+    if (extractedFieldsCount > 3) {
+      return "Wonderful! I can see you've provided several details already. Let me just fill in the remaining information to complete your booking.";
+    } else if (extractedFieldsCount > 1) {
+      return "Great! I've got some of your details. Let me ask about the other information I need.";
+    } else {
+      return "Perfect! Let me gather the details I need for your booking.";
+    }
+  }
+
   async processMessage(userMessage: string): Promise<{ response: string; bookingReady: boolean; extractedData: BookingData }> {
     console.log('Processing message:', userMessage, 'Current step:', this.currentStep);
     
@@ -660,14 +762,18 @@ export class VIPBookingAssistant {
     };
     this.conversationHistory.push(userChatMessage);
 
-    // Reset off-topic count if message is relevant
+    // Always extract all possible data first
+    this.extractAllDataFromMessage(userMessage);
+
     const analysis = this.analyzeUserMessage(userMessage);
+    
+    // Reset off-topic count if message is relevant or contains data
     if (analysis.isRelevant || analysis.containsData) {
       this.offTopicCount = 0;
     }
 
-    // If user is disinterested, end conversation gracefully
-    if (analysis.intent === 'goodbye' && analysis.sentiment === 'negative') {
+    // If user is canceling the entire booking, end conversation gracefully
+    if (analysis.isBookingCancellation) {
       this.userInterestLevel = 'disinterested';
       const response = "I completely understand! No pressure at all. If you ever need VIP transport services in the future, I'll be here to help. Have a wonderful day! 😊";
       
@@ -686,11 +792,6 @@ export class VIPBookingAssistant {
       };
     }
 
-    // Extract data from user response (but be more intelligent about it)
-    if (this.currentStep !== 'greeting') {
-      this.extractDataFromResponse(userMessage, this.currentStep);
-    }
-
     let response = '';
     let bookingReady = false;
 
@@ -702,9 +803,7 @@ export class VIPBookingAssistant {
         response = "Excellent! I'm processing your booking request now... 🎉";
       } else if (userMessage.toLowerCase().match(/\b(no|nope|change|wrong|incorrect|fix|update|modify)\b/)) {
         response = "Of course! What would you like to change? Just tell me which detail needs updating and I'll fix it right away.";
-        // Don't change step - let them specify what to change
       } else {
-        // If unclear, ask for clarification
         response = "I want to make sure everything's perfect! Should I go ahead and submit this booking, or would you like to change something first?";
       }
     } else if (this.currentStep === 'submission') {
@@ -713,16 +812,28 @@ export class VIPBookingAssistant {
       // Generate intelligent response
       response = this.getIntelligentResponse(userMessage);
 
-      // Check if current step is complete and move to next
-      if (this.isStepComplete(this.currentStep)) {
-        this.currentStep = this.getNextStep();
+      // Count how many fields have been extracted
+      const extractedFields = Object.keys(this.extractedData).filter(key => 
+        this.extractedData[key as keyof BookingData] != null
+      ).length;
+
+      // If multiple fields were extracted in one go, acknowledge this intelligently
+      if (analysis.containsData && extractedFields > 1 && this.currentStep === 'greeting') {
+        const contextualResponse = this.generateContextualResponse(extractedFields);
+        response = `${response}\n\n${contextualResponse}`;
+      }
+
+      // Smart step progression - move to next incomplete step
+      const oldStep = this.currentStep;
+      this.currentStep = this.getNextStep();
+      
+      // If we moved to a new step and it's not confirmation, add the next question naturally
+      if (this.currentStep !== oldStep && this.currentStep !== 'confirmation' && this.currentStep !== 'completed') {
+        const nextResponse = this.getStepResponse(this.currentStep, '', analysis);
         
-        // If we just completed a step, add the next question
-        if (this.currentStep !== 'completed' && this.currentStep !== 'confirmation') {
-          const nextResponse = this.getStepResponse(this.currentStep, '', analysis);
-          if (response && !response.includes(nextResponse)) {
-            response += `\n\nNow, ${nextResponse.toLowerCase()}`;
-          }
+        // Only add the next question if it's different from current response
+        if (!response.includes(nextResponse) && this.currentStep !== 'greeting') {
+          response += `\n\n${nextResponse}`;
         }
       }
     }
@@ -739,6 +850,7 @@ export class VIPBookingAssistant {
 
     console.log('Current extracted data:', this.extractedData);
     console.log('Booking ready:', bookingReady);
+    console.log('Current step:', this.currentStep);
 
     return {
       response,
