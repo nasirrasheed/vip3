@@ -178,8 +178,9 @@ export class VIPBookingAssistant {
       fields.push('date');
     }
     
-    // Time detection - improved
-    if (/\d{1,2}[:\.]?\d{0,2}\s?(am|pm|AM|PM)|\d{1,2}[:\.]?\d{2}|morning|afternoon|evening|noon|\bat\s+\d{1,2}/i.test(message)) {
+    // Time detection - improved (avoid email conflicts)
+    const containsEmail = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/.test(message);
+    if (!containsEmail && /\d{1,2}[:\.]?\d{0,2}\s?(am|pm|AM|PM)|\d{1,2}[:\.]?\d{2}|morning|afternoon|evening|noon|\bat\s+\d{1,2}/i.test(message)) {
       fields.push('time');
     }
     
@@ -208,9 +209,11 @@ export class VIPBookingAssistant {
       fields.push('service_type');
     }
     
-    // Passenger count detection
+    // Passenger count detection - IMPROVED
     if (/\b(\d+|one|two|three|four|five|six|seven|eight)\s*(passenger|person|people)\b/i.test(message) ||
-        /\bjust me\b|myself only|solo/i.test(message)) {
+        /\bjust me\b|myself only|solo/i.test(message) ||
+        /^\s*\d+\s*$/.test(message.trim()) ||
+        /\b(one|two|three|four|five|six|seven|eight|nine|ten)$/.test(message.toLowerCase().trim())) {
       fields.push('passenger_count');
     }
     
@@ -375,45 +378,61 @@ export class VIPBookingAssistant {
       }
     }
     
-    // Extract time - IMPROVED
+    // Extract time - IMPROVED (Fixed to avoid email conflicts)
     if (!this.extractedData.booking_time) {
       const timePatterns = [
         /(\d{1,2}[:\.]?\d{0,2}\s?(?:am|pm|AM|PM))/,
-        /(?:at\s+)?(\d{1,2}[:\.]?\d{2})/,
+        /(?:at\s+)?(\d{1,2}[:\.]?\d{2})(?!\d)/,  // Avoid matching numbers in emails
         /\b(morning|afternoon|evening|noon)\b/i,
         /(?:at\s+)?(\d{1,2})\s*(?:o'?clock)?(?:\s*(am|pm|AM|PM))?/
       ];
       
-      for (const pattern of timePatterns) {
-        const match = message.match(pattern);
-        if (match) {
-          this.extractedData.booking_time = match[1] || match[0];
-          newlyExtracted.booking_time = match[1] || match[0];
-          break;
+      // Only extract time if the message doesn't contain an email
+      const containsEmail = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/.test(message);
+      
+      if (!containsEmail) {
+        for (const pattern of timePatterns) {
+          const match = message.match(pattern);
+          if (match) {
+            this.extractedData.booking_time = match[1] || match[0];
+            newlyExtracted.booking_time = match[1] || match[0];
+            break;
+          }
         }
       }
     }
     
-    // Extract passenger count
+    // Extract passenger count - IMPROVED
     if (!this.extractedData.passenger_count) {
-      const countMatch = message.match(/\b(\d+)\s*(?:passenger|person|people)\b/i);
-      if (countMatch) {
-        this.extractedData.passenger_count = parseInt(countMatch[1]);
-        newlyExtracted.passenger_count = parseInt(countMatch[1]);
-      } else if (lowerMessage.includes('just me') || lowerMessage.includes('myself only')) {
-        this.extractedData.passenger_count = 1;
-        newlyExtracted.passenger_count = 1;
+      // Check for direct number responses first
+      if (/^\s*\d+\s*$/.test(message.trim())) {
+        const count = parseInt(message.trim());
+        if (count >= 1 && count <= 20) {
+          this.extractedData.passenger_count = count;
+          newlyExtracted.passenger_count = count;
+        }
       } else {
-        const numberWords = {
-          'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-          'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
-        };
-        
-        for (const [word, num] of Object.entries(numberWords)) {
-          if (lowerMessage.includes(word + ' passenger') || lowerMessage.includes(word + ' people')) {
-            this.extractedData.passenger_count = num;
-            newlyExtracted.passenger_count = num;
-            break;
+        const countMatch = message.match(/\b(\d+)\s*(?:passenger|person|people)\b/i);
+        if (countMatch) {
+          this.extractedData.passenger_count = parseInt(countMatch[1]);
+          newlyExtracted.passenger_count = parseInt(countMatch[1]);
+        } else if (lowerMessage.includes('just me') || lowerMessage.includes('myself only') || lowerMessage === '1') {
+          this.extractedData.passenger_count = 1;
+          newlyExtracted.passenger_count = 1;
+        } else {
+          const numberWords = {
+            'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+            'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
+          };
+          
+          for (const [word, num] of Object.entries(numberWords)) {
+            if (lowerMessage.includes(word + ' passenger') || 
+                lowerMessage.includes(word + ' people') ||
+                lowerMessage === word) {
+              this.extractedData.passenger_count = num;
+              newlyExtracted.passenger_count = num;
+              break;
+            }
           }
         }
       }
