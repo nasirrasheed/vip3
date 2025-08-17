@@ -29,12 +29,10 @@ export class VIPBookingAssistant {
   private extractedData: BookingData = {};
   private sessionId: string;
   private currentStep: string = 'greeting';
-  private userInterestLevel: 'high' | 'medium' | 'low' | 'disinterested' | 'confused' = 'medium';
   private conversationContext: string = '';
-  private lastQuestionAsked: string = '';
-  private attemptCount: { [key: string]: number } = {};
   private hasGreeted: boolean = false;
   private offTopicCount: number = 0;
+  private bookingCancelled: boolean = false;
 
   private stepOrder = [
     'greeting',
@@ -90,527 +88,444 @@ export class VIPBookingAssistant {
     this.sessionId = sessionId;
     this.model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     console.log('VIP Booking Assistant initialized with session:', sessionId);
-    
-    // Initialize attempt counts
-    this.stepOrder.forEach(step => {
-      this.attemptCount[step] = 0;
-    });
   }
 
   private analyzeUserMessage(userMessage: string): {
-    isRelevant: boolean;
+    isBookingCancellation: boolean;
     sentiment: 'positive' | 'negative' | 'neutral' | 'confused';
-    intent: 'booking' | 'question' | 'smalltalk' | 'complaint' | 'goodbye';
+    intent: 'booking' | 'question' | 'smalltalk' | 'complaint' | 'goodbye' | 'cancellation';
     containsData: boolean;
+    extractedFields: string[];
   } {
     const message = userMessage.toLowerCase().trim();
     
-    // Check for disinterest/goodbye
-    const disinterestKeywords = [
-      'no', 'nope', 'nah', 'no thanks', 'not interested', 'don\'t want', 'pass',
-      'forget it', 'leave it', 'drop it', 'never mind', 'stop', 'not now',
-      'maybe later', 'another time', 'later', 'not ready', 'not today',
-      'bye', 'goodbye', 'see you', 'talk later', 'gtg', 'gotta go'
+    // ONLY these phrases should cancel booking - be very specific
+    const bookingCancellationKeywords = [
+      'cancel booking', 'cancel the booking', 'cancel this booking', 'cancel my booking',
+      'stop booking', 'stop the booking', 'don\'t book', 'not interested in booking',
+      'cancel this', 'cancel it', 'forget booking', 'forget the booking',
+      'i don\'t want to book', 'don\'t want booking', 'no booking',
+      'cancel order', 'cancel reservation', 'cancel service',
+      'end booking', 'abort booking', 'quit booking'
     ];
 
-    // Check for positive responses
-    const positiveKeywords = [
-      'yes', 'yeah', 'yep', 'sure', 'okay', 'ok', 'alright', 'definitely',
-      'absolutely', 'perfect', 'great', 'excellent', 'sounds good', 'let\'s do it'
+    // These are NOT cancellation - just negative responses to specific questions
+    const nonCancellationNegatives = [
+      'no email', 'don\'t have email', 'no phone', 'don\'t have phone',
+      'no special requirements', 'no requirements', 'nothing special',
+      'no preference', 'no specific', 'don\'t mind', 'don\'t care',
+      'no idea', 'don\'t know', 'not sure', 'maybe later'
     ];
 
-    // Check for questions
-    const questionKeywords = [
-      'what', 'how', 'when', 'where', 'why', 'which', 'who', 'can you',
-      'do you', 'will you', 'are you', 'is there', '?'
-    ];
+    // Check for actual booking cancellation
+    const isBookingCancellation = bookingCancellationKeywords.some(keyword => 
+      message.includes(keyword)) && 
+      !nonCancellationNegatives.some(phrase => message.includes(phrase));
 
-    // Check for small talk
-    const smallTalkKeywords = [
-      'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
-      'how are you', 'weather', 'nice day', 'thank you', 'thanks'
-    ];
-
-    // Check for complaints
-    const complaintKeywords = [
-      'expensive', 'too much', 'cheap', 'disappointed', 'problem', 'issue',
-      'wrong', 'bad', 'terrible', 'awful', 'hate', 'don\'t like'
-    ];
-
-    const isRelevant = this.isMessageRelevantToBooking(message);
-    const containsData = this.messageContainsBookingData(message);
+    // Improved data detection
+    const extractedFields = this.detectDataInMessage(message);
+    const containsData = extractedFields.length > 0;
     
+    // Enhanced sentiment analysis
     let sentiment: 'positive' | 'negative' | 'neutral' | 'confused' = 'neutral';
-    let intent: 'booking' | 'question' | 'smalltalk' | 'complaint' | 'goodbye' = 'booking';
+    let intent: 'booking' | 'question' | 'smalltalk' | 'complaint' | 'goodbye' | 'cancellation' = 'booking';
 
-    if (disinterestKeywords.some(keyword => message.includes(keyword))) {
+    if (isBookingCancellation) {
       sentiment = 'negative';
-      intent = 'goodbye';
-    } else if (positiveKeywords.some(keyword => message.includes(keyword))) {
+      intent = 'cancellation';
+    } else if (message.match(/\b(yes|yeah|yep|sure|okay|ok|alright|definitely|absolutely|perfect|great|excellent|sounds good|let\'s do it)\b/)) {
       sentiment = 'positive';
-    } else if (complaintKeywords.some(keyword => message.includes(keyword))) {
-      sentiment = 'negative';
-      intent = 'complaint';
-    } else if (questionKeywords.some(keyword => message.includes(keyword))) {
+    } else if (message.match(/\b(what|how|when|where|why|which|who|can you|do you|will you|\?)\b/)) {
       intent = 'question';
-    } else if (smallTalkKeywords.some(keyword => message.includes(keyword))) {
+    } else if (message.match(/\b(hello|hi|hey|good morning|good afternoon|good evening|how are you|weather|nice day|thank you|thanks)\b/)) {
       intent = 'smalltalk';
       sentiment = 'positive';
+    } else if (message.match(/\b(expensive|too much|cheap|disappointed|problem|issue|wrong|bad|terrible|awful|hate)\b/) && !nonCancellationNegatives.some(phrase => message.includes(phrase))) {
+      sentiment = 'negative';
+      intent = 'complaint';
     }
 
     // Detect confusion
-    const confusionIndicators = ['what', 'huh', 'confused', 'don\'t understand', 'what do you mean'];
-    if (confusionIndicators.some(indicator => message.includes(indicator))) {
+    if (message.match(/\b(what|huh|confused|don\'t understand|what do you mean|unclear)\b/)) {
       sentiment = 'confused';
     }
 
-    return { isRelevant, sentiment, intent, containsData };
-  }
-
-  private isMessageRelevantToBooking(message: string): boolean {
-    const bookingKeywords = [
-      'transport', 'car', 'taxi', 'ride', 'book', 'booking', 'chauffeur',
-      'airport', 'wedding', 'corporate', 'event', 'security', 'pickup',
-      'dropoff', 'location', 'address', 'time', 'date', 'passenger',
-      'vehicle', 'service', 'name', 'email', 'phone', 'number'
-    ];
-
-    return bookingKeywords.some(keyword => message.includes(keyword));
-  }
-
-  private messageContainsBookingData(message: string): boolean {
-    // Check for email patterns
-    const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
-    
-    // Check for phone patterns
-    const phonePattern = /(\+44|0)[\s-]?(\d{4})[\s-]?(\d{3})[\s-]?(\d{3})|(\d{5})[\s-]?(\d{6})/;
-    
-    // Check for date patterns
-    const datePattern = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})|today|tomorrow|next week/i;
-    
-    // Check for time patterns
-    const timePattern = /\d{1,2}[:\.]?\d{0,2}\s?(am|pm|AM|PM)?/;
-    
-    // Check for numbers (passenger count, etc.)
-    const numberPattern = /\b\d+\b/;
-
-    return emailPattern.test(message) || 
-           phonePattern.test(message) || 
-           datePattern.test(message) || 
-           timePattern.test(message) || 
-           (numberPattern.test(message) && message.length > 2);
-  }
-
-  private handleOffTopicMessage(userMessage: string, analysis: any): string {
-    this.offTopicCount++;
-    
-    const responses = {
-      smalltalk: [
-        "That's lovely! I appreciate the chat. Now, to help you with your VIP transport needs",
-        "Thank you for sharing! I'm here to make your luxury travel arrangements seamless. Let's continue with",
-        "That's nice to hear! As your VIP transport specialist, I'd love to help you arrange your journey. Let me ask about"
-      ],
-      question: [
-        "Great question! I'd be happy to help with that after we get your booking sorted. For now, let me ask about",
-        "I understand you'd like to know more. I'll address that shortly. First, let's continue with getting",
-        "That's something I can definitely help clarify! To give you the best answer, let me first ask about"
-      ],
-      complaint: [
-        "I understand your concerns, and I'm here to ensure you have the best possible experience. Let's work through this together. To start,",
-        "Thank you for sharing that feedback. I want to make sure we exceed your expectations this time. May I ask about",
-        "I appreciate you bringing that up. Let's make sure everything is perfect for your booking. Could you help me with"
-      ],
-      confused: [
-        "No worries at all! Let me explain this more clearly. I'm here to help you book luxury VIP transport.",
-        "I understand this might seem like a lot. Let's take it step by step. I'm simply helping you arrange premium transport.",
-        "That's perfectly fine! I'm Alex, your VIP transport assistant, and I'm here to make booking a luxury car service super easy for you."
-      ]
+    return { 
+      isBookingCancellation, 
+      sentiment, 
+      intent, 
+      containsData, 
+      extractedFields 
     };
-
-    let responseCategory = 'smalltalk';
-    if (analysis.intent === 'question') responseCategory = 'question';
-    else if (analysis.intent === 'complaint') responseCategory = 'complaint';
-    else if (analysis.sentiment === 'confused') responseCategory = 'confused';
-
-    const responseOptions = responses[responseCategory];
-    const randomResponse = responseOptions[Math.floor(Math.random() * responseOptions.length)];
-
-    // If they're repeatedly off-topic, be more direct
-    if (this.offTopicCount > 2) {
-      return `${randomResponse} your ${this.getCurrentStepQuestion()}. I want to make sure I arrange the perfect transport for you!`;
-    }
-
-    return `${randomResponse} ${this.getCurrentStepQuestion()}.`;
   }
 
-  private getCurrentStepQuestion(): string {
-    const questions = {
-      name: "your name",
-      email: "your email address",
-      phone: "your phone number", 
-      service_type: "which transport service you need",
-      pickup_location: "where you'd like to be picked up",
-      dropoff_location: "where you're heading to",
-      booking_date: "what date you need the transport",
-      booking_time: "what time works best for you",
-      passenger_count: "how many passengers will be traveling",
-      vehicle_preference: "which type of vehicle you'd prefer",
-      special_requirements: "if you have any special requirements"
-    };
-
-    return questions[this.currentStep] || "the next detail for your booking";
-  }
-
-  private getIntelligentResponse(userMessage: string): string {
-    const analysis = this.analyzeUserMessage(userMessage);
+  private detectDataInMessage(message: string): string[] {
+    const fields = [];
     
-    // Handle goodbye/disinterest
-    if (analysis.intent === 'goodbye' && analysis.sentiment === 'negative') {
-      this.userInterestLevel = 'disinterested';
-      return "I completely understand! No pressure at all. If you ever need VIP transport services in the future, I'll be here to help. Have a wonderful day! 😊";
+    // Email detection
+    if (/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/.test(message)) {
+      fields.push('email');
     }
-
-    // Handle off-topic but maintain context
-    if (!analysis.isRelevant && !analysis.containsData) {
-      return this.handleOffTopicMessage(userMessage, analysis);
+    
+    // Phone detection
+    if (/(\+44|0)[\s-]?(\d{4})[\s-]?(\d{3})[\s-]?(\d{3})|(\d{5})[\s-]?(\d{6})|\b\d{10,15}\b/.test(message)) {
+      fields.push('phone');
     }
-
-    // Continue with normal flow
-    return this.getStepResponse(this.currentStep, userMessage, analysis);
-  }
-
-  private getStepResponse(step: string, userMessage: string, analysis: any): string {
-    this.attemptCount[step] = (this.attemptCount[step] || 0) + 1;
-
-    const responses = {
-      greeting: () => {
-        if (!this.hasGreeted) {
-          this.hasGreeted = true;
-          return "Hello! I'm Alex, your VIP transport specialist. I'm here to arrange luxury transport that exceeds your expectations.\n\nWhether you need airport transfers, wedding transport, corporate travel, or our exclusive security services - I'll make it seamless for you.\n\nWhat's your name? I'd love to provide you with personalized service.";
-        }
-        return "Great to meet you! What's your name so I can assist you personally?";
-      },
-
-      name: () => {
-        if (this.extractedData.customer_name) {
-          const firstName = this.extractedData.customer_name.split(' ')[0];
-          const greetings = [
-            `Lovely to meet you, ${firstName}! I'm excited to help arrange your perfect journey.`,
-            `Wonderful, ${firstName}! I'm here to make your transport booking effortless.`,
-            `Perfect, ${firstName}! Let's get your luxury transport sorted.`
-          ];
-          return greetings[Math.floor(Math.random() * greetings.length)];
-        }
-        
-        if (this.attemptCount[step] > 2) {
-          return "I understand you might prefer to keep things private. You can just give me a first name or even a preferred name - whatever you're comfortable with!";
-        }
-        
-        return analysis.sentiment === 'confused' 
-          ? "No worries! I just need something to call you - it could be your first name, a nickname, or whatever you prefer!"
-          : "I'd love to know what to call you! What's your name?";
-      },
-
-      email: () => {
-        if (this.extractedData.customer_email) {
-          return "Perfect! That email address looks good. I'll use this to send you booking confirmations and updates.";
-        }
-        
-        if (this.attemptCount[step] > 2) {
-          return "I understand email privacy is important. I just need this to send you booking confirmations and coordinate with our team. Your email stays completely secure with us!";
-        }
-
-        const firstName = this.extractedData.customer_name?.split(' ')[0] || '';
-        return analysis.sentiment === 'confused'
-          ? `${firstName}, I need your email address so I can send you confirmation details about your booking. Just your regular email will do!`
-          : `Thanks ${firstName}! Could you share your email address? This way I can send you all the booking confirmations and journey details.`;
-      },
-
-      phone: () => {
-        if (this.extractedData.customer_phone) {
-          return "Excellent! I've got your phone number. This helps us provide real-time updates about your chauffeur's arrival.";
-        }
-        
-        if (this.attemptCount[step] > 2) {
-          return "Your phone number helps us coordinate perfectly - like letting you know when your chauffeur arrives! UK or international numbers both work fine.";
-        }
-
-        return "Perfect! Now, could you share your phone number? This way our team can coordinate your journey perfectly and give you real-time updates.";
-      },
-
-      service_type: () => {
-        if (this.extractedData.service_type) {
-          return `Excellent choice! ${this.extractedData.service_type} is one of our most popular services. You'll absolutely love the experience we provide.`;
-        }
-
-        if (this.attemptCount[step] > 2) {
-          return "I want to make sure you get exactly what you need! Here's what we offer:\n\n• **Airport Transfers** - Professional and punctual\n• **Wedding Transport** - Make your day magical\n• **Corporate Travel** - Executive business transport\n• **Chauffeur Service** - Luxury for any occasion\n• **Event Transport** - Red carpet treatment\n• **Security Services** - Professional protection\n\nWhich one sounds right for your needs?";
-        }
-
-        return "Wonderful! We offer several premium services. Which one interests you?\n\n🚗 **Chauffeur Service** - Professional transport for any occasion\n✈️ **Airport Transfers** - Reliable with flight monitoring\n💒 **Wedding Transport** - Elegant for your special day\n💼 **Corporate Transport** - Executive business travel\n🎭 **Event Transport** - Red carpet service\n🛡️ **Security Services** - Professional protection\n\nWhat type of transport do you need?";
-      },
-
-      pickup_location: () => {
-        if (this.extractedData.pickup_location) {
-          return "Perfect! I've got your pickup location noted. Our chauffeur will find you easily there.";
-        }
-
-        if (this.attemptCount[step] > 2) {
-          return "For pickup location, I just need enough detail for our chauffeur to find you - like 'Manchester Airport Terminal 2' or '123 High Street, London' or even 'Hilton Hotel, City Center'. What works for you?";
-        }
-
-        const serviceType = this.extractedData.service_type;
-        if (serviceType?.includes('Airport')) {
-          return "Excellent! Are you traveling from your home, hotel, or office to the airport? Just let me know the pickup address.";
-        } else if (serviceType?.includes('Wedding')) {
-          return "How exciting! Where should we collect you for your special day? Your home, hotel, or the venue where you're getting ready?";
-        }
-        
-        return "Great! Where would you like us to pick you up? Could be your home, office, hotel - wherever is convenient for you.";
-      },
-
-      dropoff_location: () => {
-        if (this.extractedData.dropoff_location) {
-          return "Perfect destination! Our chauffeur will get you there in comfort and style.";
-        }
-
-        if (this.attemptCount[step] > 2) {
-          return "For your destination, just give me enough detail so our chauffeur knows exactly where to take you. What's your destination?";
-        }
-
-        return "Excellent! And where are we taking you? What's your destination address or location?";
-      },
-
-      booking_date: () => {
-        if (this.extractedData.booking_date) {
-          return "Perfect! I've noted your travel date. Our team will ensure everything is ready for you.";
-        }
-
-        if (this.attemptCount[step] > 2) {
-          return "For the date, you can say it however feels natural - like 'December 25th', '25/12/2024', 'next Friday', or even 'tomorrow'. When do you need the transport?";
-        }
-
-        return "Great! When do you need this transport? You can tell me the date in any format - like 'December 25th' or '25/12/2024' or even 'next Friday'.";
-      },
-
-      booking_time: () => {
-        if (this.extractedData.booking_time) {
-          return "Excellent timing! I've got that noted in your booking.";
-        }
-
-        if (this.attemptCount[step] > 2) {
-          return "For the time, just let me know what works - like '2:30 PM', '14:30', or even 'early morning' or 'evening'. What time suits you?";
-        }
-
-        return "Perfect! What time would you like to be picked up? You can say it any way - like '2:30 PM' or '14:30' or whatever's easiest for you.";
-      },
-
-      passenger_count: () => {
-        if (this.extractedData.passenger_count) {
-          const count = this.extractedData.passenger_count;
-          return `Got it! ${count} passenger${count > 1 ? 's' : ''}. I'll make sure we have the perfect vehicle for your group.`;
-        }
-
-        if (this.attemptCount[step] > 2) {
-          return "Just need to know how many people will be traveling - this helps me pick the right vehicle size for your comfort!";
-        }
-
-        return "Wonderful! How many passengers will be traveling? This helps me suggest the most comfortable vehicle for you.";
-      },
-
-      vehicle_preference: () => {
-        if (this.extractedData.vehicle_preference) {
-          return "Perfect choice! That vehicle will be absolutely ideal for your journey.";
-        }
-        
-        return this.getVehicleRecommendation();
-      },
-
-      special_requirements: () => {
-        if (this.extractedData.special_requirements) {
-          if (this.extractedData.special_requirements.toLowerCase().includes('none')) {
-            return "Perfect! No special requirements makes it nice and straightforward.";
-          }
-          return "Excellent! I've noted your special requirements. Our team will make sure everything is arranged perfectly.";
-        }
-
-        if (this.attemptCount[step] > 2) {
-          return "Special requirements could be anything - child seats, wheelchair access, refreshments, multiple stops, or even just 'nothing special'. What would make your journey perfect?";
-        }
-
-        return "Almost done! Do you have any special requirements? Things like child seats, refreshments, specific route preferences, or anything else that would make your journey perfect?\n\nOr just let me know if everything's straightforward!";
-      },
-
-      confirmation: () => this.getConfirmationResponse()
-    };
-
-    const responseFunction = responses[step];
-    return responseFunction ? responseFunction() : "I'm here to help with your VIP transport booking. How can I assist you?";
-  }
-
-  private getVehicleRecommendation(): string {
-    const serviceType = this.extractedData.service_type;
-    const passengerCount = this.extractedData.passenger_count || 1;
     
-    let recommendations = [];
+    // Date detection
+    if (/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})|today|tomorrow|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday/i.test(message)) {
+      fields.push('date');
+    }
     
-    if (serviceType?.includes('Wedding')) {
-      recommendations = [
-        'Rolls Royce - The ultimate in luxury for your special day',
-        'Bentley - Sophisticated elegance and style', 
-        'Luxury Sedan - Classic and beautifully refined'
-      ];
-    } else if (serviceType?.includes('Corporate')) {
-      recommendations = [
-        'Executive Sedan - Professional and discreet',
-        'Luxury SUV - Spacious and prestigious',
-        'Premium MPV - Perfect for business teams'
-      ];
-    } else if (serviceType?.includes('Security')) {
-      recommendations = [
-        'Armored Vehicle - Maximum protection and security',
-        'Executive SUV - Secure yet comfortable',
-        'Security Escort - Multi-vehicle protection'
-      ];
-    } else {
-      if (passengerCount <= 3) {
-        recommendations = [
-          'Executive Sedan - Comfortable and professional',
-          'Luxury SUV - Spacious and prestigious'
-        ];
-      } else {
-        recommendations = [
-          'Luxury SUV - Spacious for your group',
-          'Premium MPV - Perfect for larger parties'
-        ];
+    // Time detection
+    if (/\d{1,2}[:\.]?\d{0,2}\s?(am|pm|AM|PM)|morning|afternoon|evening|noon/i.test(message)) {
+      fields.push('time');
+    }
+    
+    // Location detection (basic)
+    if (message.match(/\b(street|road|avenue|lane|drive|airport|hotel|station|terminal|address)\b/i) ||
+        message.match(/\b[A-Z][a-z]+ [A-Z][a-z]+/)) {
+      if (message.match(/\bfrom\b|\bpickup\b|\bcollect\b|\bstart\b/i)) {
+        fields.push('pickup_location');
+      }
+      if (message.match(/\bto\b|\bdrop\b|\bdestination\b|\bgoing\b/i)) {
+        fields.push('dropoff_location');
+      }
+      if (!fields.includes('pickup_location') && !fields.includes('dropoff_location')) {
+        fields.push('location');
       }
     }
+    
+    // Service type detection
+    if (message.match(/\b(airport|wedding|corporate|business|chauffeur|event|security|transfer)\b/i)) {
+      fields.push('service_type');
+    }
+    
+    // Passenger count detection
+    if (/\b(\d+|one|two|three|four|five|six|seven|eight)\s*(passenger|person|people)\b/i.test(message) ||
+        /\bjust me\b|myself only|solo/i.test(message)) {
+      fields.push('passenger_count');
+    }
+    
+    // Name detection (if it looks like a name)
+    if (message.match(/^[A-Z][a-z]+ [A-Z][a-z]+$/) || 
+        message.match(/^[A-Z][a-z]+$/)) {
+      fields.push('name');
+    }
 
-    return `Based on your ${serviceType?.toLowerCase() || 'transport needs'} and ${passengerCount} passenger${passengerCount > 1 ? 's' : ''}, here are my recommendations:\n\n${recommendations.map(r => `• ${r}`).join('\n')}\n\nWhich appeals to you, or would you like me to choose the best option?`;
+    return fields;
   }
 
-  private extractDataFromResponse(userMessage: string, step: string): void {
+  private extractMultipleDataFromResponse(userMessage: string): void {
     const message = userMessage.trim();
+    const lowerMessage = message.toLowerCase();
     
-    switch (step) {
-      case 'name':
-        // Extract any name-like text
-        const nameMatch = message.match(/(?:i'm|i am|name is|call me)\s+([a-zA-Z\s]+)/i) ||
-                         message.match(/^([a-zA-Z\s]{2,30})$/);
-        if (nameMatch) {
-          this.extractedData.customer_name = nameMatch[1].trim();
-        } else if (message.length > 1 && message.length < 50 && !message.toLowerCase().includes('not')) {
-          // Assume single word/phrase responses are names
-          this.extractedData.customer_name = message;
+    // Extract name
+    if (!this.extractedData.customer_name) {
+      const nameMatch = message.match(/(?:i'm|i am|name is|call me)\s+([a-zA-Z\s]+)/i) ||
+                       message.match(/^([a-zA-Z\s]{2,50})$/) ||
+                       message.match(/\bmy name is ([a-zA-Z\s]+)/i);
+      if (nameMatch && nameMatch[1].trim().length > 1) {
+        this.extractedData.customer_name = nameMatch[1].trim();
+      }
+    }
+    
+    // Extract email
+    if (!this.extractedData.customer_email) {
+      const emailMatch = message.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+      if (emailMatch) {
+        this.extractedData.customer_email = emailMatch[0];
+      }
+    }
+    
+    // Extract phone
+    if (!this.extractedData.customer_phone) {
+      const phoneMatch = message.match(/(\+44|0)[\s-]?(\d{4})[\s-]?(\d{3})[\s-]?(\d{3})|(\d{5})[\s-]?(\d{6})|\b\d{10,15}\b/);
+      if (phoneMatch) {
+        this.extractedData.customer_phone = phoneMatch[0];
+      }
+    }
+    
+    // Extract service type
+    if (!this.extractedData.service_type) {
+      const serviceMap = {
+        'chauffeur': 'Chauffeur Service',
+        'airport': 'Airport Transfers',
+        'transfer': 'Airport Transfers',
+        'wedding': 'Wedding Transport',
+        'corporate': 'Corporate Transport',
+        'business': 'Corporate Transport',
+        'event': 'Event Transport',
+        'security': 'Security Services'
+      };
+      
+      for (const [key, value] of Object.entries(serviceMap)) {
+        if (lowerMessage.includes(key)) {
+          this.extractedData.service_type = value;
+          break;
+        }
+      }
+    }
+    
+    // Extract pickup and dropoff locations
+    const locationPatterns = [
+      // From X to Y
+      /from\s+(.+?)\s+to\s+(.+?)(?:\.|$|,)/i,
+      // Pickup from X, going to Y
+      /pickup\s+(?:from\s+)?(.+?)(?:\s+(?:and\s+)?(?:going\s+)?to\s+(.+?))?(?:\.|$|,)/i,
+      // Going from X to Y
+      /going\s+from\s+(.+?)\s+to\s+(.+?)(?:\.|$|,)/i
+    ];
+
+    for (const pattern of locationPatterns) {
+      const match = message.match(pattern);
+      if (match) {
+        if (match[1] && !this.extractedData.pickup_location) {
+          this.extractedData.pickup_location = match[1].trim();
+        }
+        if (match[2] && !this.extractedData.dropoff_location) {
+          this.extractedData.dropoff_location = match[2].trim();
         }
         break;
-        
-      case 'email':
-        const emailMatch = message.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
-        if (emailMatch) {
-          this.extractedData.customer_email = emailMatch[0];
+      }
+    }
+    
+    // Extract date
+    if (!this.extractedData.booking_date) {
+      if (lowerMessage.includes('today')) {
+        this.extractedData.booking_date = 'Today';
+      } else if (lowerMessage.includes('tomorrow')) {
+        this.extractedData.booking_date = 'Tomorrow';
+      } else {
+        const dateMatch = message.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+        if (dateMatch) {
+          this.extractedData.booking_date = dateMatch[0];
+        } else {
+          const dayMatch = message.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
+          if (dayMatch) {
+            this.extractedData.booking_date = dayMatch[0];
+          }
         }
-        break;
-        
-      case 'phone':
-        // More flexible phone matching
-        const phoneMatch = message.match(/(\+44|0)[\s-]?(\d{4})[\s-]?(\d{3})[\s-]?(\d{3})|(\d{5})[\s-]?(\d{6})/) ||
-                          message.match(/\b\d{10,15}\b/);
-        if (phoneMatch) {
-          this.extractedData.customer_phone = phoneMatch[0];
-        }
-        break;
-        
-      case 'service_type':
-        const lowerMessage = message.toLowerCase();
-        const serviceMap = {
-          'chauffeur': 'Chauffeur Service',
-          'airport': 'Airport Transfers',
-          'wedding': 'Wedding Transport',
-          'corporate': 'Corporate Transport',
-          'business': 'Corporate Transport',
-          'event': 'Event Transport',
-          'security': 'Security Services',
-          'transfer': 'Airport Transfers'
+      }
+    }
+    
+    // Extract time
+    if (!this.extractedData.booking_time) {
+      const timeMatch = message.match(/(\d{1,2}[:\.]?\d{0,2}\s?(?:am|pm|AM|PM))/);
+      if (timeMatch) {
+        this.extractedData.booking_time = timeMatch[0];
+      } else if (lowerMessage.includes('morning')) {
+        this.extractedData.booking_time = 'Morning';
+      } else if (lowerMessage.includes('afternoon')) {
+        this.extractedData.booking_time = 'Afternoon';
+      } else if (lowerMessage.includes('evening')) {
+        this.extractedData.booking_time = 'Evening';
+      }
+    }
+    
+    // Extract passenger count
+    if (!this.extractedData.passenger_count) {
+      const countMatch = message.match(/\b(\d+)\s*(?:passenger|person|people)\b/i);
+      if (countMatch) {
+        this.extractedData.passenger_count = parseInt(countMatch[1]);
+      } else if (lowerMessage.includes('just me') || lowerMessage.includes('myself only')) {
+        this.extractedData.passenger_count = 1;
+      } else {
+        const numberWords = {
+          'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+          'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
         };
         
-        for (const [key, value] of Object.entries(serviceMap)) {
-          if (lowerMessage.includes(key)) {
-            this.extractedData.service_type = value;
+        for (const [word, num] of Object.entries(numberWords)) {
+          if (lowerMessage.includes(word)) {
+            this.extractedData.passenger_count = num;
             break;
           }
         }
-        break;
-        
-      case 'pickup_location':
-      case 'dropoff_location':
-        if (message.length > 3 && !message.toLowerCase().includes('don\'t know')) {
-          this.extractedData[step] = message;
+      }
+    }
+    
+    // Extract vehicle preference
+    if (!this.extractedData.vehicle_preference) {
+      if (lowerMessage.includes('no preference') || 
+          lowerMessage.includes('you choose') ||
+          lowerMessage.includes('surprise me') ||
+          lowerMessage.includes('don\'t mind') ||
+          lowerMessage.includes('any car')) {
+        this.extractedData.vehicle_preference = 'No specific preference - please select suitable vehicle';
+      } else {
+        const vehicles = ['sedan', 'suv', 'rolls royce', 'bentley', 'luxury', 'executive', 'mpv'];
+        for (const vehicle of vehicles) {
+          if (lowerMessage.includes(vehicle)) {
+            this.extractedData.vehicle_preference = message;
+            break;
+          }
         }
-        break;
-        
-      case 'booking_date':
-        // Flexible date parsing
-        if (message.toLowerCase().includes('today')) {
-          this.extractedData.booking_date = 'Today';
-        } else if (message.toLowerCase().includes('tomorrow')) {
-          this.extractedData.booking_date = 'Tomorrow';
-        } else if (message.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/)) {
-          this.extractedData.booking_date = message;
-        } else if (message.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)) {
-          this.extractedData.booking_date = message;
-        }
-        break;
-        
-      case 'booking_time':
-        const timeMatch = message.match(/\d{1,2}[:\.]?\d{0,2}\s?(am|pm|AM|PM)?/);
-        if (timeMatch) {
-          this.extractedData.booking_time = message;
-        }
-        break;
-        
-      case 'passenger_count':
-        const countMatch = message.match(/\d+/);
-        if (countMatch) {
-          this.extractedData.passenger_count = parseInt(countMatch[0]);
-        } else if (message.toLowerCase().includes('one') || message.toLowerCase().includes('just me')) {
-          this.extractedData.passenger_count = 1;
-        } else if (message.toLowerCase().includes('two')) {
-          this.extractedData.passenger_count = 2;
-        } else if (message.toLowerCase().includes('three')) {
-          this.extractedData.passenger_count = 3;
-        }
-        break;
-        
-      case 'vehicle_preference':
-        if (message.toLowerCase().includes('no preference') || 
-            message.toLowerCase().includes('you choose') ||
-            message.toLowerCase().includes('surprise me')) {
-          this.extractedData.vehicle_preference = 'No specific preference - please select suitable vehicle';
-        } else if (message.length > 3) {
-          this.extractedData.vehicle_preference = message;
-        }
-        break;
-        
-      case 'special_requirements':
-        if (message.toLowerCase().includes('none') || 
-            message.toLowerCase().includes('no special') || 
-            message.toLowerCase().includes('nothing') ||
-            message.toLowerCase().includes('no requirements')) {
-          this.extractedData.special_requirements = 'None';
-        } else if (message.length > 2) {
-          this.extractedData.special_requirements = message;
-        }
-        break;
+      }
+    }
+    
+    // Extract special requirements
+    if (!this.extractedData.special_requirements) {
+      if (lowerMessage.includes('no requirements') || 
+          lowerMessage.includes('no special') || 
+          lowerMessage.includes('nothing special') ||
+          lowerMessage.includes('none') ||
+          lowerMessage.includes('no extras')) {
+        this.extractedData.special_requirements = 'None';
+      } else if (lowerMessage.includes('child seat') || 
+                 lowerMessage.includes('wheelchair') || 
+                 lowerMessage.includes('refreshment') ||
+                 lowerMessage.includes('stop') ||
+                 lowerMessage.includes('water')) {
+        this.extractedData.special_requirements = message;
+      }
     }
   }
 
-  private getNextStep(): string {
-    const currentIndex = this.stepOrder.indexOf(this.currentStep);
-    if (currentIndex < this.stepOrder.length - 1) {
-      return this.stepOrder[currentIndex + 1];
+  private generateIntelligentResponse(userMessage: string, analysis: any): string {
+    // Handle booking cancellation
+    if (analysis.isBookingCancellation) {
+      this.bookingCancelled = true;
+      return "I understand - no problem at all! Your booking request has been cancelled. If you ever need VIP transport services in the future, I'll be here to help. Have a wonderful day! 😊";
     }
-    return 'completed';
+
+    // Extract any data from the message first
+    this.extractMultipleDataFromResponse(userMessage);
+
+    // Acknowledge extracted data intelligently
+    let acknowledgment = '';
+    const newlyExtracted = [];
+
+    if (this.extractedData.customer_name && !acknowledgment.includes('name')) {
+      newlyExtracted.push(`name (${this.extractedData.customer_name.split(' ')[0]})`);
+    }
+    if (this.extractedData.customer_email && !acknowledgment.includes('email')) {
+      newlyExtracted.push('email');
+    }
+    if (this.extractedData.pickup_location && !acknowledgment.includes('pickup')) {
+      newlyExtracted.push('pickup location');
+    }
+    if (this.extractedData.dropoff_location && !acknowledgment.includes('destination')) {
+      newlyExtracted.push('destination');
+    }
+    if (this.extractedData.booking_date && !acknowledgment.includes('date')) {
+      newlyExtracted.push(`date (${this.extractedData.booking_date})`);
+    }
+    if (this.extractedData.booking_time && !acknowledgment.includes('time')) {
+      newlyExtracted.push(`time (${this.extractedData.booking_time})`);
+    }
+
+    if (newlyExtracted.length > 0) {
+      if (newlyExtracted.length === 1) {
+        acknowledgment = `Perfect! I've got your ${newlyExtracted[0]}.`;
+      } else if (newlyExtracted.length === 2) {
+        acknowledgment = `Excellent! I've noted your ${newlyExtracted[0]} and ${newlyExtracted[1]}.`;
+      } else {
+        const last = newlyExtracted.pop();
+        acknowledgment = `Fantastic! I've captured your ${newlyExtracted.join(', ')}, and ${last}.`;
+      }
+    }
+
+    // Get next needed information
+    const nextStep = this.getNextMissingStep();
+    
+    if (nextStep === 'confirmation') {
+      return `${acknowledgment}\n\n${this.getConfirmationResponse()}`;
+    }
+
+    const nextQuestion = this.getContextualQuestion(nextStep);
+    
+    if (acknowledgment && nextQuestion) {
+      return `${acknowledgment}\n\n${nextQuestion}`;
+    } else if (nextQuestion) {
+      return nextQuestion;
+    } else if (acknowledgment) {
+      return acknowledgment;
+    }
+
+    return this.getStepResponse(this.currentStep, userMessage);
+  }
+
+  private getNextMissingStep(): string {
+    const requiredSteps = [
+      'name', 'email', 'phone', 'service_type', 'pickup_location', 
+      'dropoff_location', 'booking_date', 'booking_time', 'passenger_count'
+    ];
+    
+    for (const step of requiredSteps) {
+      if (!this.isStepComplete(step)) {
+        return step;
+      }
+    }
+    
+    // Optional steps
+    if (!this.extractedData.vehicle_preference) return 'vehicle_preference';
+    if (!this.extractedData.special_requirements) return 'special_requirements';
+    
+    return 'confirmation';
+  }
+
+  private getContextualQuestion(step: string): string {
+    const questions = {
+      name: "What's your name? I'd love to provide personalized service!",
+      email: "Could you share your email address? I'll send you confirmation details there.",
+      phone: "What's your phone number? This helps us coordinate your journey perfectly.",
+      service_type: "What type of transport service do you need?\n\n🚗 **Chauffeur Service** - Professional transport for any occasion\n✈️ **Airport Transfers** - Reliable with flight monitoring\n💒 **Wedding Transport** - Elegant for your special day\n💼 **Corporate Transport** - Executive business travel\n🎭 **Event Transport** - Red carpet service\n🛡️ **Security Services** - Professional protection",
+      pickup_location: "Where would you like us to pick you up?",
+      dropoff_location: "What's your destination?",
+      booking_date: "What date do you need the transport? (You can say it any way like 'tomorrow', 'Dec 25th', or '25/12/2024')",
+      booking_time: "What time works best for pickup?",
+      passenger_count: "How many passengers will be traveling?",
+      vehicle_preference: this.getVehicleRecommendation(),
+      special_requirements: "Any special requirements? (Child seats, refreshments, multiple stops, or just let me know if everything's straightforward!)"
+    };
+
+    return questions[step] || "Let me get the next detail for your booking.";
+  }
+
+  private handleOffTopicGently(userMessage: string, analysis: any): string {
+    this.offTopicCount++;
+    
+    const responses = {
+      question: [
+        "That's a great question! I'll be happy to answer that once we get your booking sorted.",
+        "I'd love to help with that! Let me quickly finish getting your transport details first.",
+        "Good question! I can definitely help with that after we arrange your journey."
+      ],
+      smalltalk: [
+        "That's lovely! I appreciate the chat.",
+        "Thank you for sharing! That's nice to hear.",
+        "That sounds wonderful!"
+      ],
+      complaint: [
+        "I understand your concerns, and I want to make sure you have an excellent experience.",
+        "Thank you for that feedback - I'll make sure we exceed your expectations.",
+        "I appreciate you sharing that. Let's ensure everything is perfect for you."
+      ]
+    };
+
+    let responseType = 'smalltalk';
+    if (analysis.intent === 'question') responseType = 'question';
+    else if (analysis.intent === 'complaint') responseType = 'complaint';
+
+    const responseOptions = responses[responseType];
+    const response = responseOptions[Math.floor(Math.random() * responseOptions.length)];
+
+    const nextStep = this.getNextMissingStep();
+    const nextQuestion = this.getContextualQuestion(nextStep);
+
+    return `${response} ${nextQuestion}`;
+  }
+
+  private getStepResponse(step: string, userMessage: string): string {
+    if (step === 'greeting') {
+      if (!this.hasGreeted) {
+        this.hasGreeted = true;
+        return "Hello! I'm Alex, your VIP transport specialist. I'm here to arrange luxury transport that exceeds your expectations.\n\nWhether you need airport transfers, wedding transport, corporate travel, or our exclusive security services - I'll make it seamless for you.\n\nWhat's your name? I'd love to provide you with personalized service.";
+      }
+    }
+
+    return this.getContextualQuestion(step);
   }
 
   private isStepComplete(step: string): boolean {
@@ -630,6 +545,45 @@ export class VIPBookingAssistant {
     }
   }
 
+  private getVehicleRecommendation(): string {
+    const serviceType = this.extractedData.service_type;
+    const passengerCount = this.extractedData.passenger_count || 1;
+    
+    let recommendations = [];
+    
+    if (serviceType?.includes('Wedding')) {
+      recommendations = [
+        'Rolls Royce - Ultimate luxury for your special day',
+        'Bentley - Sophisticated elegance', 
+        'Luxury Sedan - Classic refinement'
+      ];
+    } else if (serviceType?.includes('Corporate')) {
+      recommendations = [
+        'Executive Sedan - Professional and discreet',
+        'Luxury SUV - Spacious and prestigious'
+      ];
+    } else if (serviceType?.includes('Security')) {
+      recommendations = [
+        'Armored Vehicle - Maximum protection',
+        'Executive SUV - Secure yet comfortable'
+      ];
+    } else {
+      if (passengerCount <= 3) {
+        recommendations = [
+          'Executive Sedan - Comfortable and professional',
+          'Luxury SUV - Spacious and prestigious'
+        ];
+      } else {
+        recommendations = [
+          'Luxury SUV - Perfect for your group',
+          'Premium MPV - Spacious for larger parties'
+        ];
+      }
+    }
+
+    return `Based on your needs, here are my recommendations:\n\n${recommendations.map(r => `• ${r}`).join('\n')}\n\nWhich appeals to you, or would you like me to choose the best option?`;
+  }
+
   private getConfirmationResponse(): string {
     return `Perfect! Let me confirm everything for you:\n\n${this.getBookingSummary()}\n\nDoes this all look correct? Just say 'yes' to confirm and I'll submit your booking, or let me know if you'd like to change anything!`;
   }
@@ -646,13 +600,14 @@ export class VIPBookingAssistant {
 📅 **Date:** ${this.extractedData.booking_date}
 ⏰ **Time:** ${this.extractedData.booking_time}
 👥 **Passengers:** ${this.extractedData.passenger_count}
-🚙 **Vehicle:** ${this.extractedData.vehicle_preference}
-📝 **Requirements:** ${this.extractedData.special_requirements}`;
+🚙 **Vehicle:** ${this.extractedData.vehicle_preference || 'Best suitable option'}
+📝 **Requirements:** ${this.extractedData.special_requirements || 'Standard service'}`;
   }
 
   async processMessage(userMessage: string): Promise<{ response: string; bookingReady: boolean; extractedData: BookingData }> {
     console.log('Processing message:', userMessage, 'Current step:', this.currentStep);
     
+    // Add to conversation history
     const userChatMessage: ChatMessage = {
       role: 'user',
       content: userMessage,
@@ -660,71 +615,45 @@ export class VIPBookingAssistant {
     };
     this.conversationHistory.push(userChatMessage);
 
-    // Reset off-topic count if message is relevant
-    const analysis = this.analyzeUserMessage(userMessage);
-    if (analysis.isRelevant || analysis.containsData) {
-      this.offTopicCount = 0;
-    }
-
-    // If user is disinterested, end conversation gracefully
-    if (analysis.intent === 'goodbye' && analysis.sentiment === 'negative') {
-      this.userInterestLevel = 'disinterested';
-      const response = "I completely understand! No pressure at all. If you ever need VIP transport services in the future, I'll be here to help. Have a wonderful day! 😊";
-      
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: response,
-        timestamp: new Date()
-      };
-      this.conversationHistory.push(assistantMessage);
-      await this.saveConversation();
-      
+    // Check if booking was cancelled
+    if (this.bookingCancelled) {
       return {
-        response,
+        response: "Your booking has been cancelled. If you need anything else, I'm here to help!",
         bookingReady: false,
         extractedData: this.extractedData
       };
     }
 
-    // Extract data from user response (but be more intelligent about it)
-    if (this.currentStep !== 'greeting') {
-      this.extractDataFromResponse(userMessage, this.currentStep);
-    }
-
+    // Analyze the message
+    const analysis = this.analyzeUserMessage(userMessage);
+    
     let response = '';
     let bookingReady = false;
 
     // Handle confirmation step
     if (this.currentStep === 'confirmation') {
-      if (userMessage.toLowerCase().match(/\b(yes|yep|yeah|correct|confirm|looks good|perfect|submit|book it|let's do it|go ahead)\b/)) {
+      if (userMessage.toLowerCase().match(/\b(yes|yep|yeah|correct|confirm|looks good|perfect|submit|book it|go ahead)\b/)) {
         this.currentStep = 'submission';
         bookingReady = true;
         response = "Excellent! I'm processing your booking request now... 🎉";
       } else if (userMessage.toLowerCase().match(/\b(no|nope|change|wrong|incorrect|fix|update|modify)\b/)) {
-        response = "Of course! What would you like to change? Just tell me which detail needs updating and I'll fix it right away.";
-        // Don't change step - let them specify what to change
+        response = "Of course! What would you like to change? Just tell me which detail needs updating.";
       } else {
-        // If unclear, ask for clarification
-        response = "I want to make sure everything's perfect! Should I go ahead and submit this booking, or would you like to change something first?";
+        response = "Should I go ahead and submit this booking, or would you like to change something?";
       }
     } else if (this.currentStep === 'submission') {
-      response = "🎉 Wonderful! Your booking request has been submitted successfully!\n\nHere's what happens next:\n• Our team will review your request within 30 minutes\n• You'll receive a confirmation call or email\n• We'll coordinate all journey details with you\n\n📞 **For immediate assistance:** 07464 247 007\n📧 **Email:** bookings@viptransportandsecurity.co.uk\n\nThank you for choosing VIP Transport and Security! Is there anything else I can help you with today?";
+      response = "🎉 Wonderful! Your booking request has been submitted successfully!\n\nHere's what happens next:\n• Our team will review your request within 30 minutes\n• You'll receive a confirmation call or email\n• We'll coordinate all journey details with you\n\n📞 **For immediate assistance:** 07464 247 007\n📧 **Email:** bookings@viptransportandsecurity.co.uk\n\nThank you for choosing VIP Transport and Security!";
     } else {
-      // Generate intelligent response
-      response = this.getIntelligentResponse(userMessage);
-
-      // Check if current step is complete and move to next
-      if (this.isStepComplete(this.currentStep)) {
-        this.currentStep = this.getNextStep();
-        
-        // If we just completed a step, add the next question
-        if (this.currentStep !== 'completed' && this.currentStep !== 'confirmation') {
-          const nextResponse = this.getStepResponse(this.currentStep, '', analysis);
-          if (response && !response.includes(nextResponse)) {
-            response += `\n\nNow, ${nextResponse.toLowerCase()}`;
-          }
-        }
+      // Handle off-topic messages gently
+      if (!analysis.containsData && analysis.intent !== 'booking' && analysis.intent !== 'cancellation') {
+        response = this.handleOffTopicGently(userMessage, analysis);
+      } else {
+        // Generate intelligent response
+        response = this.generateIntelligentResponse(userMessage, analysis);
       }
+
+      // Update current step to next missing step
+      this.currentStep = this.getNextMissingStep();
     }
 
     const assistantMessage: ChatMessage = {
@@ -756,7 +685,7 @@ export class VIPBookingAssistant {
           content: msg.content,
           timestamp: msg.timestamp.toISOString()
         })),
-        status: this.currentStep === 'submission' ? 'completed' : 'active'
+        status: this.currentStep === 'submission' ? 'completed' : this.bookingCancelled ? 'cancelled' : 'active'
       };
 
       const { error } = await supabase
@@ -882,12 +811,8 @@ export class VIPBookingAssistant {
     this.conversationHistory = [];
     this.extractedData = {};
     this.currentStep = 'greeting';
-    this.userInterestLevel = 'medium';
     this.hasGreeted = false;
     this.offTopicCount = 0;
-    this.attemptCount = {};
-    this.stepOrder.forEach(step => {
-      this.attemptCount[step] = 0;
-    });
+    this.bookingCancelled = false;
   }
 }
