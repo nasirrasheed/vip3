@@ -93,9 +93,13 @@ export class VIPBookingAssistant {
     
     // Disinterest indicators
     const disinterestKeywords = [
-      'not interested', 'no thanks', 'not now', 'maybe later', 'cancel',
-      'stop', 'don\'t want', 'not looking', 'just browsing', 'just checking',
-      'too expensive', 'can\'t afford', 'not ready', 'think about it','leave it'
+    'no', 'nope', 'nah', 'no thanks', 'not interested', 'don\'t want', 'pass', 
+    'forget it', 'leave it', 'drop it', 'never mind', 'stop', 'not now', 
+    'maybe later', 'another time', 'later', 'not ready', 'not today', 
+    'some other day', 'think about it', 'cancel', 'quit', 'abort', 'end', 
+    'exit', 'close', 'stop booking', 'stop this', 'too expensive', 'can\'t afford', 
+    'not worth it', 'too much', 'don\'t need', 'don’t contact', 'don’t call', 
+    'unsubscribe', 'remove me', 'leave me alone'
     ];
 
     // High interest indicators
