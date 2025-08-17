@@ -1,20 +1,5 @@
 {
-  "redirects": [
-    {
-      "source": "/",
-      "has": [
-        { "type": "host", "value": "www.viptransportandsecurity.co.uk" }
-      ],
-      "destination": "/closed",
-      "permanent": false
-    },
-    {
-      "source": "/((?!admin).*)",
-      "has": [
-        { "type": "host", "value": "www.viptransportandsecurity.co.uk" }
-      ],
-      "destination": "/closed",
-      "permanent": false
-    }
-  ]
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ]
 }
