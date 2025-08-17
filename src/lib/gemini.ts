@@ -1,4 +1,147 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+private generateIntelligentResponse(userMessage: string, analysis: any): string {
+    // Handle booking cancellation
+    if (analysis.isBookingCancellation) {
+      this.bookingCancelled = true;
+      return "I understand - no problem at all! Your booking request has been cancelled. If you ever need VIP transport services in the future, I'll be here to help. Have a wonderful day! 😊";
+    }
+
+    // Store previous data state to track what's new
+    const previousData = { ...this.extractedData };
+
+    // Extract any data from the message first
+    this.extractMultipleDataFromResponse(userMessage);
+
+    // Build comprehensive acknowledgment of ALL collected data
+    let acknowledgment = this.buildProgressiveAcknowledgment(previousData);
+
+    // Get next needed information
+    const nextStep = this.getNextMissingStep();
+    
+    if (nextStep === 'confirmation') {
+      return `${acknowledgment}\n\n${this.getConfirmationResponse()}`;
+    }
+
+    const nextQuestion = this.getContextualQuestion(nextStep);
+    
+    if (acknowledgment && nextQuestion) {
+      return `${acknowledgment}\n\n${nextQuestion}`;
+    } else if (nextQuestion) {
+      return nextQuestion;
+    } else if (acknowledgment) {
+      return acknowledgment;
+    }
+
+    return this.getStepResponse(this.currentStep, userMessage);
+  }
+
+  private buildProgressiveAcknowledgment(previousData: BookingData): string {
+    const collected = [];
+    const newlyAdded = [];
+    
+    // Check each field and build acknowledgment
+    if (this.extractedData.customer_name) {
+      const firstName = this.extractedData.customer_name.split(' ')[0];
+      if (!previousData.customer_name) {
+        newlyAdded.push(`name (${firstName})`);
+      }
+      collected.push(`👤 Name: ${firstName}`);
+    }
+    
+    if (this.extractedData.customer_email) {
+      if (!previousData.customer_email) {
+        newlyAdded.push('email address');
+      }
+      collected.push(`📧 Email: ${this.extractedData.customer_email}`);
+    }
+    
+    if (this.extractedData.customer_phone) {
+      if (!previousData.customer_phone) {
+        newlyAdded.push('phone number');
+      }
+      collected.push(`📱 Phone: ${this.extractedData.customer_phone}`);
+    }
+    
+    if (this.extractedData.service_type) {
+      if (!previousData.service_type) {
+        newlyAdded.push(`service type (${this.extractedData.service_type})`);
+      }
+      collected.push(`🚗 Service: ${this.extractedData.service_type}`);
+    }
+    
+    if (this.extractedData.pickup_location) {
+      if (!previousData.pickup_location) {
+        newlyAdded.push('pickup location');
+      }
+      collected.push(`📍 Pickup: ${this.extractedData.pickup_location}`);
+    }
+    
+    if (this.extractedData.dropoff_location) {
+      if (!previousData.dropoff_location) {
+        newlyAdded.push('destination');
+      }
+      collected.push(`🎯 Destination: ${this.extractedData.dropoff_location}`);
+    }
+    
+    if (this.extractedData.booking_date) {
+      if (!previousData.booking_date) {
+        newlyAdded.push(`date (${this.extractedData.booking_date})`);
+      }
+      collected.push(`📅 Date: ${this.extractedData.booking_date}`);
+    }
+    
+    if (this.extractedData.booking_time) {
+      if (!previousData.booking_time) {
+        newlyAdded.push(`time (${this.extractedData.booking_time})`);
+      }
+      collected.push(`⏰ Time: ${this.extractedData.booking_time}`);
+    }
+    
+    if (this.extractedData.passenger_count) {
+      if (!previousData.passenger_count) {
+        newlyAdded.push(`passenger count (${this.extractedData.passenger_count})`);
+      }
+      collected.push(`👥 Passengers: ${this.extractedData.passenger_count}`);
+    }
+    
+    if (this.extractedData.vehicle_preference) {
+      if (!previousData.vehicle_preference) {
+        newlyAdded.push('vehicle preference');
+      }
+      collected.push(`🚙 Vehicle: ${this.extractedData.vehicle_preference}`);
+    }
+    
+    if (this.extractedData.special_requirements) {
+      if (!previousData.special_requirements) {
+        newlyAdded.push('special requirements');
+      }
+      collected.push(`📝 Requirements: ${this.extractedData.special_requirements}`);
+    }
+
+    // Build the acknowledgment message
+    let acknowledgment = '';
+    
+    if (newlyAdded.length > 0) {
+      // Acknowledge what was just captured
+      if (newlyAdded.length === 1) {
+        acknowledgment = `Perfect! I've captured your ${newlyAdded[0]}.`;
+      } else if (newlyAdded.length === 2) {
+        acknowledgment = `Excellent! I've got your ${newlyAdded[0]} and ${newlyAdded[1]}.`;
+      } else {
+        const last = newlyAdded.pop();
+        acknowledgment = `Fantastic! I've captured your ${newlyAdded.join(', ')}, and ${last}.`;
+      }
+      
+      // Show progress summary if we have multiple items collected
+      if (collected.length > 2) {
+        acknowledgment += `\n\n✅ **Progress so far:**\n${collected.join('\n')}`;
+      }
+    } else if (collected.length > 0) {
+      // No new data, but acknowledge existing progress
+      acknowledgment = `Great! Here's what I have so far:\n\n${collected.join('\n')}`;
+    }
+
+    return acknowledgment;
+  }import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from './supabase';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyB66RXtmuEvvh42ZGPLxk57nZ8JRht14QE');
@@ -172,26 +315,35 @@ export class VIPBookingAssistant {
       fields.push('phone');
     }
     
-    // Date detection
-    if (/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})|today|tomorrow|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday/i.test(message)) {
+    // Date detection - improved
+    if (/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})|today|tomorrow|next week|this week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\bnext\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(message)) {
       fields.push('date');
     }
     
-    // Time detection
-    if (/\d{1,2}[:\.]?\d{0,2}\s?(am|pm|AM|PM)|morning|afternoon|evening|noon/i.test(message)) {
+    // Time detection - improved
+    if (/\d{1,2}[:\.]?\d{0,2}\s?(am|pm|AM|PM)|\d{1,2}[:\.]?\d{2}|morning|afternoon|evening|noon|\bat\s+\d{1,2}/i.test(message)) {
       fields.push('time');
     }
     
-    // Location detection (basic)
-    if (message.match(/\b(street|road|avenue|lane|drive|airport|hotel|station|terminal|address)\b/i) ||
-        message.match(/\b[A-Z][a-z]+ [A-Z][a-z]+/)) {
-      if (message.match(/\bfrom\b|\bpickup\b|\bcollect\b|\bstart\b/i)) {
+    // Enhanced location detection for specific addresses
+    const hasAddress = message.match(/\b\d+\s+[A-Za-z\s]+(street|road|avenue|lane|drive|way|place|court|crescent|close|park|square|gardens?)\b/i) ||
+                      message.match(/\b[A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2}\b/) || // UK postcodes
+                      message.match(/\b(airport|hotel|station|terminal|university|hospital|mall|center|centre)\b/i) ||
+                      message.match(/\b[A-Z][a-z]+\s+(Airport|Hotel|Station|Terminal|University|Hospital|Mall|Center|Centre)\b/);
+    
+    const hasLocationKeywords = message.match(/\b(street|road|avenue|lane|drive|way|place|court|crescent|close|park|square|gardens?)\b/i);
+    
+    if (hasAddress || hasLocationKeywords) {
+      // Check for pickup indicators
+      if (message.match(/\b(from|pickup|pick\s+up|collect|start|leaving|departing)\b/i)) {
         fields.push('pickup_location');
       }
-      if (message.match(/\bto\b|\bdrop\b|\bdestination\b|\bgoing\b/i)) {
+      // Check for dropoff indicators  
+      if (message.match(/\b(to|drop|drop\s+off|destination|going|arriving|ending)\b/i)) {
         fields.push('dropoff_location');
       }
-      if (!fields.includes('pickup_location') && !fields.includes('dropoff_location')) {
+      // If no specific indicators but has address-like content
+      if (!fields.includes('pickup_location') && !fields.includes('dropoff_location') && hasAddress) {
         fields.push('location');
       }
     }
@@ -267,30 +419,67 @@ export class VIPBookingAssistant {
       }
     }
     
-    // Extract pickup and dropoff locations
-    const locationPatterns = [
-      // From X to Y
-      /from\s+(.+?)\s+to\s+(.+?)(?:\.|$|,)/i,
-      // Pickup from X, going to Y
-      /pickup\s+(?:from\s+)?(.+?)(?:\s+(?:and\s+)?(?:going\s+)?to\s+(.+?))?(?:\.|$|,)/i,
-      // Going from X to Y
-      /going\s+from\s+(.+?)\s+to\s+(.+?)(?:\.|$|,)/i
-    ];
-
-    for (const pattern of locationPatterns) {
-      const match = message.match(pattern);
-      if (match) {
-        if (match[1] && !this.extractedData.pickup_location) {
-          this.extractedData.pickup_location = match[1].trim();
+    // Enhanced pickup and dropoff location extraction
+    // Pattern 1: "from X to Y" or "pick up from X and drop at Y"
+    const fromToPattern = /(?:from|pick\s*up\s*from|collect\s*from)\s+(.+?)\s+(?:to|and\s*drop\s*(?:off\s*)?(?:at|to)|drop\s*(?:off\s*)?(?:at|to)|and\s*(?:going\s*)?to)\s+(.+?)(?:\.|$|,|\sand\s|\sat\s|\son\s)/i;
+    const fromToMatch = message.match(fromToPattern);
+    
+    if (fromToMatch) {
+      if (!this.extractedData.pickup_location) {
+        this.extractedData.pickup_location = fromToMatch[1].trim();
+      }
+      if (!this.extractedData.dropoff_location) {
+        this.extractedData.dropoff_location = fromToMatch[2].trim();
+      }
+    } else {
+      // Pattern 2: Individual pickup detection
+      if (!this.extractedData.pickup_location) {
+        const pickupPatterns = [
+          /(?:pick\s*up|collect|start|from)\s+(?:me\s+)?(?:from\s+)?(.+?)(?:\s+and\s|\s+to\s|\s+drop\s|$|\.)/i,
+          /^(.+?)\s+(?:to|and\s*drop)/i  // "Address to..." format
+        ];
+        
+        for (const pattern of pickupPatterns) {
+          const match = message.match(pattern);
+          if (match && match[1].trim().length > 3) {
+            // Check if it looks like an address (has numbers + street words or postcode)
+            const addressLike = match[1].match(/\d+.*?(street|road|avenue|lane|drive|way|place|court|crescent|close|park|square|gardens?)/i) ||
+                              match[1].match(/\b[A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2}\b/) ||
+                              match[1].match(/\b(airport|hotel|station|terminal|university|hospital)\b/i);
+            
+            if (addressLike) {
+              this.extractedData.pickup_location = match[1].trim();
+              break;
+            }
+          }
         }
-        if (match[2] && !this.extractedData.dropoff_location) {
-          this.extractedData.dropoff_location = match[2].trim();
+      }
+      
+      // Pattern 3: Individual dropoff detection
+      if (!this.extractedData.dropoff_location) {
+        const dropoffPatterns = [
+          /(?:to|drop\s*(?:off\s*)?(?:at|to)|destination|going\s*to)\s+(.+?)(?:\s+on\s|\s+at\s|$|\.)/i,
+          /(?:and\s*)?(?:drop|going)\s+(?:off\s+)?(?:at\s+)?(.+?)(?:\s+on\s|\s+at\s|$|\.)/i
+        ];
+        
+        for (const pattern of dropoffPatterns) {
+          const match = message.match(pattern);
+          if (match && match[1].trim().length > 3) {
+            // Check if it looks like an address
+            const addressLike = match[1].match(/\d+.*?(street|road|avenue|lane|drive|way|place|court|crescent|close|park|square|gardens?)/i) ||
+                              match[1].match(/\b[A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2}\b/) ||
+                              match[1].match(/\b(airport|hotel|station|terminal|university|hospital)\b/i);
+            
+            if (addressLike) {
+              this.extractedData.dropoff_location = match[1].trim();
+              break;
+            }
+          }
         }
-        break;
       }
     }
     
-    // Extract date
+    // Extract date - enhanced
     if (!this.extractedData.booking_date) {
       if (lowerMessage.includes('today')) {
         this.extractedData.booking_date = 'Today';
@@ -301,7 +490,7 @@ export class VIPBookingAssistant {
         if (dateMatch) {
           this.extractedData.booking_date = dateMatch[0];
         } else {
-          const dayMatch = message.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
+          const dayMatch = message.match(/(next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)|this\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
           if (dayMatch) {
             this.extractedData.booking_date = dayMatch[0];
           }
@@ -309,17 +498,21 @@ export class VIPBookingAssistant {
       }
     }
     
-    // Extract time
+    // Extract time - enhanced
     if (!this.extractedData.booking_time) {
-      const timeMatch = message.match(/(\d{1,2}[:\.]?\d{0,2}\s?(?:am|pm|AM|PM))/);
-      if (timeMatch) {
-        this.extractedData.booking_time = timeMatch[0];
-      } else if (lowerMessage.includes('morning')) {
-        this.extractedData.booking_time = 'Morning';
-      } else if (lowerMessage.includes('afternoon')) {
-        this.extractedData.booking_time = 'Afternoon';
-      } else if (lowerMessage.includes('evening')) {
-        this.extractedData.booking_time = 'Evening';
+      const timePatterns = [
+        /(\d{1,2}[:\.]?\d{0,2}\s?(?:am|pm|AM|PM))/,
+        /(?:at\s+)?(\d{1,2}[:\.]?\d{2})/,
+        /\b(morning|afternoon|evening|noon)\b/i,
+        /(?:at\s+)?(\d{1,2})\s*(?:o'?clock)?/
+      ];
+      
+      for (const pattern of timePatterns) {
+        const match = message.match(pattern);
+        if (match) {
+          this.extractedData.booking_time = match[1] || match[0];
+          break;
+        }
       }
     }
     
@@ -337,7 +530,7 @@ export class VIPBookingAssistant {
         };
         
         for (const [word, num] of Object.entries(numberWords)) {
-          if (lowerMessage.includes(word)) {
+          if (lowerMessage.includes(word + ' passenger') || lowerMessage.includes(word + ' people')) {
             this.extractedData.passenger_count = num;
             break;
           }
