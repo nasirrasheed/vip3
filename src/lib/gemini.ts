@@ -95,7 +95,7 @@ export class VIPBookingAssistant {
     const disinterestKeywords = [
       'not interested', 'no thanks', 'not now', 'maybe later', 'cancel',
       'stop', 'don\'t want', 'not looking', 'just browsing', 'just checking',
-      'too expensive', 'can\'t afford', 'not ready', 'think about it'
+      'too expensive', 'can\'t afford', 'not ready', 'think about it','leave it'
     ];
 
     // High interest indicators
